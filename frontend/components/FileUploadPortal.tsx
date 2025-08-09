@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { Progress } from './ui/progress';
 import { Separator } from './ui/separator';
 import { 
   Upload, 
@@ -10,9 +9,7 @@ import {
   User, 
   CheckCircle, 
   XCircle, 
-  AlertCircle,
-  Download,
-  Trash2
+  AlertCircle
 } from 'lucide-react';
 import { UppyFileUploader } from './UppyFileUploader';
 import { apiService, UploadedFile } from '../services/api';
@@ -35,6 +32,8 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
     failed: 0
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
 
   // Load files on component mount
   useEffect(() => {
@@ -64,6 +63,14 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
     });
   };
 
+  const showUploadNotification = (filename: string) => {
+    setNotificationMessage(`Successfully uploaded ${filename}`);
+    setShowNotification(true);
+    setTimeout(() => {
+      setShowNotification(false);
+    }, 3000);
+  };
+
   const handleFileAdded = (file: File) => {
     console.log('File added:', file.name);
   };
@@ -90,12 +97,15 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
       successful: prev.successful + 1
     }));
     
+    // Show upload success notification
+    showUploadNotification(newFile.filename);
     console.log('File uploaded successfully:', newFile);
   };
 
   const handleUploadError = (file: File, error: Error) => {
+    console.error('Upload error:', file.name, error);
     const newFile: UploadedFile = {
-      id: Math.random().toString(),
+      id: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       filename: file.name,
       size: file.size,
       content_type: file.type,
@@ -118,30 +128,6 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const deleteFile = async (fileId: string) => {
-    try {
-      await apiService.deleteFile(fileId);
-      setUploadedFiles(prev => prev.filter(file => file.id !== fileId));
-      setUploadStats(prev => ({
-        ...prev,
-        total: prev.total - 1,
-        successful: prev.successful - 1
-      }));
-    } catch (error) {
-      console.error('Failed to delete file:', error);
-      alert('Failed to delete file');
-    }
-  };
-
-  const downloadFile = async (fileId: string) => {
-    try {
-      await apiService.downloadFile(fileId);
-    } catch (error) {
-      console.error('Failed to download file:', error);
-      alert('Failed to download file');
-    }
   };
 
   return (
@@ -277,18 +263,6 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
                       {uploadStats.failed}
                     </Badge>
                   </div>
-                  {uploadStats.total > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Success Rate</span>
-                        <span>{Math.round((uploadStats.successful / uploadStats.total) * 100)}%</span>
-                      </div>
-                      <Progress 
-                        value={(uploadStats.successful / uploadStats.total) * 100} 
-                        className="h-2"
-                      />
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -342,7 +316,12 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {uploadedFiles.length === 0 ? (
+                  {isLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                      <p className="text-sm text-gray-500">Loading files...</p>
+                    </div>
+                  ) : uploadedFiles.length === 0 ? (
                     <div className="text-center py-8">
                       <Upload className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                       <p className="text-sm text-gray-500">No files uploaded yet</p>
@@ -352,7 +331,7 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
                     </div>
                   ) : (
                     uploadedFiles.map((file, index) => (
-                      <div key={file.id}>
+                      <div key={`${file.id}-${index}`}>
                         <div className="flex items-start justify-between">
                           <div className="flex items-start space-x-2 flex-1 min-w-0">
                             <div className="flex-shrink-0 mt-1">
@@ -369,28 +348,6 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
                               <p className="text-xs text-gray-500">
                                 {formatFileSize(file.size)} • {new Date(file.uploaded_at).toLocaleDateString()}
                               </p>
-                              {file.status === 'success' && file.url && (
-                                <div className="flex items-center space-x-2 mt-1">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-6 px-2 text-xs"
-                                    onClick={() => downloadFile(file.id)}
-                                  >
-                                    <Download className="w-3 h-3 mr-1" />
-                                    Download
-                                  </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
-                                    onClick={() => deleteFile(file.id)}
-                                  >
-                                    <Trash2 className="w-3 h-3 mr-1" />
-                                    Delete
-                                  </Button>
-                                </div>
-                              )}
                             </div>
                           </div>
                         </div>
@@ -406,6 +363,16 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
           </div>
         </div>
       </div>
+
+      {/* Upload Success Notification */}
+      {showNotification && (
+        <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-right-5 duration-300">
+          <div className="bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center space-x-2">
+            <CheckCircle className="w-5 h-5" />
+            <span className="text-sm font-medium">{notificationMessage}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -150,37 +150,7 @@ class ApiService {
     return this.request<UploadedFile[]>('/api/files');
   }
 
-  async downloadFile(fileId: string): Promise<void> {
-    const token = this.getToken();
-    const url = `${this.baseUrl}/api/files/${fileId}`;
-    
-    const headers: Record<string, string> = {};
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
 
-    const response = await fetch(url, { headers });
-    
-    if (!response.ok) {
-      throw new Error('Failed to download file');
-    }
-
-    const blob = await response.blob();
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = downloadUrl;
-    a.download = ''; // Browser will use the filename from Content-Disposition header
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(downloadUrl);
-    document.body.removeChild(a);
-  }
-
-  async deleteFile(fileId: string): Promise<void> {
-    await this.request(`/api/files/${fileId}`, {
-      method: 'DELETE',
-    });
-  }
 }
 
 export const apiService = new ApiService();

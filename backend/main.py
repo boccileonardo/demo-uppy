@@ -25,7 +25,7 @@ SECRET_KEY = "your-secret-key-change-in-production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 UPLOAD_DIR = Path("../data")  # Store files in the main repo's data directory
-DATABASE_URL = "sqlite:///./demo_uploader.db"
+DATABASE_URL = "sqlite:///../data/demo_uploader.db"
 
 # Create upload directory if it doesn't exist
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -175,6 +175,9 @@ async def login(user_login: UserLogin, db: Session = Depends(get_db)):
     
     # Check if first login (needs password setup)
     if user.is_first_login:
+        # Verify the temporary password
+        if not verify_password(user_login.password, user.password_hash):
+            raise HTTPException(status_code=401, detail="Invalid email or password")
         return {
             "access_token": "",
             "token_type": "bearer",
@@ -294,57 +297,7 @@ async def list_files(
         for f in files
     ]
 
-@app.get("/api/files/{file_id}")
-async def download_file(
-    file_id: str,
-    email: str = Depends(verify_token),
-    db: Session = Depends(get_db)
-):
-    # Find file
-    uploaded_file = db.query(UploadedFile).filter(
-        UploadedFile.id == file_id,
-        UploadedFile.user_email == email
-    ).first()
-    
-    if not uploaded_file:
-        raise HTTPException(status_code=404, detail="File not found")
-    
-    if not os.path.exists(uploaded_file.file_path):
-        raise HTTPException(status_code=404, detail="File not found on disk")
-    
-    return FileResponse(
-        uploaded_file.file_path,
-        filename=uploaded_file.original_filename,
-        media_type=uploaded_file.content_type
-    )
 
-@app.delete("/api/files/{file_id}")
-async def delete_file(
-    file_id: str,
-    email: str = Depends(verify_token),
-    db: Session = Depends(get_db)
-):
-    # Find file
-    uploaded_file = db.query(UploadedFile).filter(
-        UploadedFile.id == file_id,
-        UploadedFile.user_email == email
-    ).first()
-    
-    if not uploaded_file:
-        raise HTTPException(status_code=404, detail="File not found")
-    
-    # Delete file from disk
-    try:
-        if os.path.exists(uploaded_file.file_path):
-            os.remove(uploaded_file.file_path)
-    except Exception:
-        pass  # Continue even if file deletion fails
-    
-    # Delete from database
-    db.delete(uploaded_file)
-    db.commit()
-    
-    return {"message": "File deleted successfully"}
 
 if __name__ == "__main__":
     import uvicorn
