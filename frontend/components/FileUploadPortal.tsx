@@ -169,9 +169,9 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:grid-rows-[1fr] lg:items-stretch">
           {/* Upload Section */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 flex flex-col">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -206,7 +206,7 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
             </Card>
 
             {/* Upload Guidelines */}
-            <Card className="mt-6">
+            <Card className="mt-6 flex-1">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <AlertCircle className="w-5 h-5 mr-2" />
@@ -253,7 +253,7 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
           </div>
 
           {/* Stats & Files Sidebar */}
-          <div className="space-y-6">
+          <div className="flex flex-col space-y-6 h-full">
             {/* Upload Statistics */}
             <Card>
               <CardHeader>
@@ -273,7 +273,9 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Failed</span>
-                    <Badge variant="destructive">{uploadStats.failed}</Badge>
+                    <Badge variant="destructive" className="bg-red-500 text-white">
+                      {uploadStats.failed}
+                    </Badge>
                   </div>
                   {uploadStats.total > 0 && (
                     <div className="space-y-2">
@@ -334,7 +336,7 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
             </Card>
 
             {/* Recent Files */}
-            <Card>
+            <Card className="flex-1">
               <CardHeader>
                 <CardTitle>Recent Files</CardTitle>
               </CardHeader>
