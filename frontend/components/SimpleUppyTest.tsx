@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import Uppy from '@uppy/core';
 import Dashboard from '@uppy/dashboard';
 

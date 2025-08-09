@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { AuthSection } from './components/AuthSection';
 import { FileUploadPortal } from './components/FileUploadPortal';
-import { apiService, User } from './services/api';
+import { apiService } from './services/api';
+import { useLoading } from './hooks';
+import { storage } from './utils/helpers';
+import { AUTH } from './config/constants';
+import type { User } from './types';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const { isLoading, withLoading } = useLoading();
 
   // Check for existing token on app load
   useEffect(() => {
@@ -21,54 +25,42 @@ export default function App() {
       // Try to make an authenticated request to validate the token
       await apiService.listFiles();
       // If successful, get user info from localStorage or make a user info API call
-      const userInfo = localStorage.getItem('user_info');
+      const userInfo = storage.getObject<User>(AUTH.USER_INFO_KEY);
       if (userInfo) {
-        setUser(JSON.parse(userInfo));
+        setUser(userInfo);
       }
     } catch (error) {
       // Token is invalid, clear it
       apiService.clearToken();
-      localStorage.removeItem('user_info');
+      storage.remove(AUTH.USER_INFO_KEY);
     }
   };
 
   const handleLogin = async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
+    return withLoading(async () => {
       const response = await apiService.login(email, password);
       if (response.user.needs_password_setup) {
-        // Handle first-time login case
-        setIsLoading(false);
         return { needsPasswordSetup: true };
       }
       apiService.setToken(response.access_token);
       setUser(response.user);
-      localStorage.setItem('user_info', JSON.stringify(response.user));
-      setIsLoading(false);
+      storage.setObject(AUTH.USER_INFO_KEY, response.user);
       return { needsPasswordSetup: false };
-    } catch (error) {
-      setIsLoading(false);
-      throw error;
-    }
+    });
   };
 
   const handleSetPassword = async (email: string, newPassword: string) => {
-    setIsLoading(true);
-    try {
+    return withLoading(async () => {
       const response = await apiService.setPassword(email, newPassword);
       apiService.setToken(response.access_token);
       setUser(response.user);
-      localStorage.setItem('user_info', JSON.stringify(response.user));
-      setIsLoading(false);
-    } catch (error) {
-      setIsLoading(false);
-      throw error;
-    }
+      storage.setObject(AUTH.USER_INFO_KEY, response.user);
+    });
   };
 
   const handleLogout = () => {
     apiService.clearToken();
-    localStorage.removeItem('user_info');
+    storage.remove(AUTH.USER_INFO_KEY);
     setUser(null);
   };
 

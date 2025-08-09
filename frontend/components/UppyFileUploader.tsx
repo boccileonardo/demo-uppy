@@ -3,6 +3,7 @@ import Uppy from '@uppy/core';
 import Dashboard from '@uppy/dashboard';
 import XHRUpload from '@uppy/xhr-upload';
 import { apiService } from '../services/api';
+import { API_CONFIG, FILE_UPLOAD } from '../config/constants';
 
 // Import Uppy styles
 import '@uppy/core/dist/style.min.css';
@@ -59,9 +60,9 @@ export function UppyFileUploader({
   const uppyRef = useRef<Uppy | null>(null);
   
   const {
-    maxFileSize = 100 * 1024 * 1024, // 100MB
-    maxNumberOfFiles = 10,
-    allowedFileTypes = ['image/*', 'application/pdf', '.doc', '.docx', '.txt', '.zip', '.rar']
+    maxFileSize = FILE_UPLOAD.MAX_FILE_SIZE,
+    maxNumberOfFiles = FILE_UPLOAD.MAX_FILES,
+    allowedFileTypes = [...FILE_UPLOAD.ALLOWED_TYPES]
   } = restrictions;
 
   useEffect(() => {
@@ -84,7 +85,7 @@ export function UppyFileUploader({
 
     // Add XHR Upload plugin
     uppy.use(XHRUpload, {
-      endpoint: `http://localhost:8000${endpoint}`,
+      endpoint: `${API_CONFIG.BASE_URL}${endpoint}`,
       formData: true,
       fieldName: 'file',
       headers: {
@@ -191,7 +192,7 @@ export function UppyFileUploader({
           <li>• Maximum file size: {Math.round(maxFileSize / (1024 * 1024))}MB</li>
           <li>• Maximum {maxNumberOfFiles} files per upload</li>
           <li>• Allowed types: {allowedFileTypes.join(', ')}</li>
-          <li>• Files are uploaded to Azure Blob Storage</li>
+          <li>• Files are uploaded to secure storage</li>
           <li>• Click "Upload" button after selecting files to start upload</li>
         </ul>
       </div>

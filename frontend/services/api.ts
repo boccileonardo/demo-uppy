@@ -1,55 +1,34 @@
 // API service for communicating with the FastAPI backend
 
-interface User {
-  email: string;
-  name: string;
-  needs_password_setup?: boolean;
-}
-
-interface LoginResponse {
-  access_token: string;
-  token_type: string;
-  user: User;
-}
-
-interface FileUploadResponse {
-  id: string;
-  filename: string;
-  size: number;
-  content_type: string;
-  url: string;
-  uploaded_at: string;
-}
-
-interface UploadedFile {
-  id: string;
-  filename: string;
-  size: number;
-  content_type: string;
-  uploaded_at: string;
-  status: string;
-  url: string;
-}
+import { API_CONFIG, AUTH } from '../config/constants';
+import { AppError } from '../utils/errors';
+import { storage } from '../utils/helpers';
+import type { 
+  User, 
+  LoginResponse, 
+  FileUploadResponse, 
+  UploadedFile
+} from '../types';
 
 class ApiService {
-  private baseUrl = 'http://localhost:8000';
+  private baseUrl = API_CONFIG.BASE_URL;
   private token: string | null = null;
 
   setToken(token: string) {
     this.token = token;
-    localStorage.setItem('auth_token', token);
+    storage.set(AUTH.TOKEN_KEY, token);
   }
 
   getToken(): string | null {
     if (!this.token) {
-      this.token = localStorage.getItem('auth_token');
+      this.token = storage.get(AUTH.TOKEN_KEY);
     }
     return this.token;
   }
 
   clearToken() {
     this.token = null;
-    localStorage.removeItem('auth_token');
+    storage.remove(AUTH.TOKEN_KEY);
   }
 
   private async request<T>(
@@ -75,7 +54,7 @@ class ApiService {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ detail: 'An error occurred' }));
-      throw new Error(errorData.detail || `HTTP ${response.status}`);
+      throw new AppError(errorData.detail || `HTTP ${response.status}`, response.status);
     }
 
     return response.json();
@@ -98,7 +77,7 @@ class ApiService {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ detail: 'Upload failed' }));
-      throw new Error(errorData.detail || `HTTP ${response.status}`);
+      throw new AppError(errorData.detail || `HTTP ${response.status}`, response.status);
     }
 
     return response.json();
@@ -106,14 +85,14 @@ class ApiService {
 
   // Auth endpoints
   async login(email: string, password: string): Promise<LoginResponse> {
-    return this.request<LoginResponse>('/api/auth/login', {
+    return this.request<LoginResponse>(API_CONFIG.ENDPOINTS.LOGIN, {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
   }
 
   async setPassword(email: string, newPassword: string): Promise<LoginResponse> {
-    return this.request<LoginResponse>('/api/auth/set-password', {
+    return this.request<LoginResponse>(API_CONFIG.ENDPOINTS.SET_PASSWORD, {
       method: 'POST',
       body: JSON.stringify({ email, new_password: newPassword }),
     });
@@ -143,11 +122,11 @@ class ApiService {
       }
     }
 
-    return this.uploadRequest('/api/upload', formData);
+    return this.uploadRequest(API_CONFIG.ENDPOINTS.UPLOAD, formData);
   }
 
   async listFiles(): Promise<UploadedFile[]> {
-    return this.request<UploadedFile[]>('/api/files');
+    return this.request<UploadedFile[]>(API_CONFIG.ENDPOINTS.FILES);
   }
 
 

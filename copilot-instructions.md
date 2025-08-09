@@ -1,6 +1,6 @@
 # App Description:
 
-Develop a web application that provides file uploading services to users with a secure user authentication system. The uploaded files should be stored in Azure Blob Storage. We will be using uppy.js as the file upload system and python, sqlite and fastapi as the backend. 
+Web application that provides file uploading services to users with a secure user authentication system. The uploaded files should be stored in Azure Blob Storage. We will be using uppy.js as the file upload system and python, sqlite and fastapi as the backend. 
 
 # Application Type:
 
@@ -14,9 +14,11 @@ Web Application
 
 3. Azure Blob Storage: The app should automatically upload the received files from the users to Azure Blob Storage.
 
+4. Admin panel: An admin user should be able to activate, deactivate, create and delete users, and configure their blob storage destinations (storage account and container).
+
 # Secondary Features:
 
-1. File Validation: The application should validate the type and size of the uploaded files before uploading them to Azure Blob Storage (files will only be allowed for structured data so use appropriate file types).
+1. File Validation: The application should validate the type and size of the uploaded files before uploading them to Azure Blob Storage (Only structured data allowed - parquet, csv, json, avro, etc.).
 
 2. Progress Indicator: The system should showcase the progress of the file upload to the user.
 
@@ -60,7 +62,7 @@ Web Application
 
 # User Experience:
 
-1. Users should easily register and log in to the application.
+1. Users should easily log in to the application.
 
 2. The file upload process should be simple and straightforward.
 

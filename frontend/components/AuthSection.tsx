@@ -5,32 +5,34 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Label } from './ui/label';
 import { Alert, AlertDescription } from './ui/alert';
 import { Upload, Shield, Cloud, Key, AlertCircle } from 'lucide-react';
-
-interface AuthSectionProps {
-  onLogin: (email: string, password: string) => Promise<{ needsPasswordSetup: boolean }>;
-  onSetPassword: (email: string, newPassword: string) => Promise<void>;
-  isLoading: boolean;
-}
+import { useFormState } from '../hooks';
+import { validatePassword } from '../utils/helpers';
+import type { AuthSectionProps, LoginCredentials, PasswordSetup } from '../types';
 
 export function AuthSection({ onLogin, onSetPassword, isLoading }: AuthSectionProps) {
-  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
-  const [passwordSetupForm, setPasswordSetupForm] = useState({ 
-    email: '', 
-    newPassword: '', 
-    confirmPassword: '' 
-  });
   const [isFirstTimeSetup, setIsFirstTimeSetup] = useState(false);
-  const [setupError, setSetupError] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [setupError, setSetupError] = useState('');
+  
+  const loginForm = useFormState<LoginCredentials>({
+    email: '',
+    password: '',
+  });
+  
+  const passwordForm = useFormState<PasswordSetup>({
+    email: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
     
     try {
-      const result = await onLogin(loginForm.email, loginForm.password);
+      const result = await onLogin(loginForm.values.email, loginForm.values.password);
       if (result.needsPasswordSetup) {
-        setPasswordSetupForm({ ...passwordSetupForm, email: loginForm.email });
+        passwordForm.setValue('email', loginForm.values.email);
         setIsFirstTimeSetup(true);
       }
     } catch (error) {
@@ -42,18 +44,19 @@ export function AuthSection({ onLogin, onSetPassword, isLoading }: AuthSectionPr
     e.preventDefault();
     setSetupError('');
 
-    if (passwordSetupForm.newPassword !== passwordSetupForm.confirmPassword) {
+    if (passwordForm.values.newPassword !== passwordForm.values.confirmPassword) {
       setSetupError('Passwords do not match');
       return;
     }
 
-    if (passwordSetupForm.newPassword.length < 6) {
-      setSetupError('Password must be at least 6 characters long');
+    const validation = validatePassword(passwordForm.values.newPassword);
+    if (!validation.isValid) {
+      setSetupError(validation.message || 'Invalid password');
       return;
     }
 
     try {
-      await onSetPassword(passwordSetupForm.email, passwordSetupForm.newPassword);
+      await onSetPassword(passwordForm.values.email, passwordForm.values.newPassword);
     } catch (error) {
       setSetupError(error instanceof Error ? error.message : 'Password setup failed');
     }
@@ -61,7 +64,7 @@ export function AuthSection({ onLogin, onSetPassword, isLoading }: AuthSectionPr
 
   const goBackToLogin = () => {
     setIsFirstTimeSetup(false);
-    setPasswordSetupForm({ email: '', newPassword: '', confirmPassword: '' });
+    passwordForm.reset();
     setSetupError('');
   };
 
@@ -124,7 +127,7 @@ export function AuthSection({ onLogin, onSetPassword, isLoading }: AuthSectionPr
                   <Input
                     id="setup-email"
                     type="email"
-                    value={passwordSetupForm.email}
+                    value={passwordForm.values.email}
                     disabled
                     className="bg-gray-50"
                   />
@@ -135,11 +138,8 @@ export function AuthSection({ onLogin, onSetPassword, isLoading }: AuthSectionPr
                     id="new-password"
                     type="password"
                     placeholder="Create a secure password"
-                    value={passwordSetupForm.newPassword}
-                    onChange={(e) => setPasswordSetupForm({ 
-                      ...passwordSetupForm, 
-                      newPassword: e.target.value 
-                    })}
+                    value={passwordForm.values.newPassword}
+                    onChange={(e) => passwordForm.setValue('newPassword', e.target.value)}
                     required
                     minLength={6}
                   />
@@ -150,11 +150,8 @@ export function AuthSection({ onLogin, onSetPassword, isLoading }: AuthSectionPr
                     id="confirm-password"
                     type="password"
                     placeholder="Confirm your password"
-                    value={passwordSetupForm.confirmPassword}
-                    onChange={(e) => setPasswordSetupForm({ 
-                      ...passwordSetupForm, 
-                      confirmPassword: e.target.value 
-                    })}
+                    value={passwordForm.values.confirmPassword || ''}
+                    onChange={(e) => passwordForm.setValue('confirmPassword', e.target.value)}
                     required
                     minLength={6}
                   />
@@ -191,8 +188,8 @@ export function AuthSection({ onLogin, onSetPassword, isLoading }: AuthSectionPr
                     id="login-email"
                     type="email"
                     placeholder="Enter your email"
-                    value={loginForm.email}
-                    onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                    value={loginForm.values.email}
+                    onChange={(e) => loginForm.setValue('email', e.target.value)}
                     required
                   />
                 </div>
@@ -202,8 +199,8 @@ export function AuthSection({ onLogin, onSetPassword, isLoading }: AuthSectionPr
                     id="login-password"
                     type="password"
                     placeholder="Enter your password"
-                    value={loginForm.password}
-                    onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                    value={loginForm.values.password}
+                    onChange={(e) => loginForm.setValue('password', e.target.value)}
                     required
                   />
                 </div>
