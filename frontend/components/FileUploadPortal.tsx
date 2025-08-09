@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
@@ -6,7 +7,8 @@ import {
   Upload, 
   LogOut, 
   User, 
-  AlertCircle
+  AlertCircle,
+  Settings
 } from 'lucide-react';
 import { UppyFileUploader } from './UppyFileUploader';
 import { Notification, LoadingSpinner, EmptyState, StatCard, FileItem } from './ui/common';
@@ -92,6 +94,12 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
                 <User className="w-4 h-4 text-gray-400" />
                 <span className="text-sm text-gray-600">{user.name}</span>
               </div>
+              <Link to="/admin">
+                <Button variant="outline" size="sm">
+                  <Settings className="w-4 h-4 mr-1" />
+                  Admin
+                </Button>
+              </Link>
               <Button variant="outline" size="sm" onClick={onLogout}>
                 <LogOut className="w-4 h-4 mr-1" />
                 Logout

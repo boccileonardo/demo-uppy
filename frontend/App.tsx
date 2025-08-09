@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthSection } from './components/AuthSection';
 import { FileUploadPortal } from './components/FileUploadPortal';
+import { AdminPanel } from './components/AdminPanel';
 import { apiService } from './services/api';
 import { useLoading } from './hooks';
 import { storage } from './utils/helpers';
@@ -64,6 +66,11 @@ export default function App() {
     setUser(null);
   };
 
+  // Protect admin routes
+  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    return user ? children : <Navigate to="/" replace />;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {!user ? (
@@ -73,7 +80,26 @@ export default function App() {
           isLoading={isLoading}
         />
       ) : (
-        <FileUploadPortal user={user} onLogout={handleLogout} />
+        <Routes>
+          <Route 
+            path="/" 
+            element={
+              <FileUploadPortal 
+                user={user} 
+                onLogout={handleLogout}
+              />
+            } 
+          />
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute>
+                <AdminPanel />
+              </ProtectedRoute>
+            } 
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       )}
     </div>
   );
