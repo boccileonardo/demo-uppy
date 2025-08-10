@@ -14,14 +14,14 @@ help:
 
 # Clean up everything
 clean:
-	docker-compose down -v
-	docker-compose -f docker-compose.dev.yml down -v || true
+	docker compose down -v
+	docker compose -f docker-compose.dev.yml down -v || true
 	docker system prune -f
 
 # Development mode
 dev:
-	docker-compose -f docker-compose.dev.yml up --build
+	docker compose -f docker-compose.dev.yml up --build
 
 # Production mode with multi-stage optimized build
 prod:
-	docker-compose up -d --build
+	docker compose up -d --build

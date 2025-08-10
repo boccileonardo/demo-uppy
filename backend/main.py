@@ -21,11 +21,11 @@ import aiofiles
 from pydantic import BaseModel
 
 # Configuration
-SECRET_KEY = "your-secret-key-change-in-production"
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-UPLOAD_DIR = Path("../data")  # Store files in the main repo's data directory
-DATABASE_URL = "sqlite:///../data/demo_uploader.db"
+UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "../data"))  # Store files in the configured upload directory
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///../data/demo_uploader.db")
 
 # Create upload directory if it doesn't exist
 UPLOAD_DIR.mkdir(exist_ok=True)
