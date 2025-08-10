@@ -166,6 +166,10 @@ async def startup_event():
 async def root():
     return {"message": "Demo Uploader API", "version": "1.0.0"}
 
+@app.get("/api/health")
+async def health_check():
+    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+
 @app.post("/api/auth/login", response_model=Token)
 async def login(user_login: UserLogin, db: Session = Depends(get_db)):
     # Find user

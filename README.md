@@ -21,12 +21,54 @@ A full-stack file upload demo application with React frontend and FastAPI backen
 
 ## Quick Start
 
-### Prerequisites
+### Option 1: Docker Deployment (Recommended)
+
+The easiest way to run the application is using Docker Compose:
+
+```bash
+# Build and start all services
+docker-compose up --build
+
+# Or run in detached mode
+docker-compose up -d --build
+```
+
+**Using the convenience script:**
+```bash
+# Production mode
+./docker.sh prod
+
+# Development mode with hot reloading
+./docker.sh dev
+
+# Show help
+./docker.sh help
+```
+
+**Using Make:**
+```bash
+# Production mode
+make prod
+
+# Development mode
+make dev
+
+# Show all available commands
+make help
+```
+
+The application will be available at:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+
+### Option 2: Manual Setup
+
+#### Prerequisites
 
 - Python 3.12+ with `uv` package manager installed
 - Node.js 18+ with npm
 
-### 1. Start the Backend Server
+#### 1. Start the Backend Server
 
 ```bash
 cd backend
@@ -40,7 +82,7 @@ uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 The backend will be available at: `http://localhost:8000`
 
-### 2. Start the Frontend Server
+#### 2. Start the Frontend Server
 
 ```bash
 npm install  # Only needed first time
@@ -128,9 +170,58 @@ The frontend uses:
 
 The frontend automatically proxies API requests to the backend.
 
+## Docker Deployment
+
+The application is fully containerized using Docker and Docker Compose. See [DOCKER.md](DOCKER.md) for detailed Docker deployment instructions.
+
+### Quick Docker Commands
+
+```bash
+# Start production environment
+docker-compose up -d --build
+
+# Start development environment (with hot reloading)
+docker-compose -f docker-compose.dev.yml up --build
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Clean up everything
+docker-compose down -v && docker system prune -f
+```
+
+### Docker Services
+
+- **Backend**: FastAPI application with health checks
+- **Frontend**: React application served by Nginx
+- **Volumes**: Persistent storage for uploads and database
+- **Network**: Internal Docker network for service communication
+
 ## Deployment Notes
 
-For production deployment:
+### Docker Production Deployment (Recommended)
+
+1. **Update environment variables** in `docker-compose.yml`:
+   - Change `SECRET_KEY` to a secure value
+   - Configure proper database settings if using external DB
+
+2. **Deploy using Docker Compose**:
+   ```bash
+   docker-compose up -d --build
+   ```
+
+3. **Optional production enhancements**:
+   - Use external database (PostgreSQL)
+   - Add SSL/TLS certificates
+   - Implement proper logging and monitoring
+   - Use container orchestration (Kubernetes)
+
+### Manual Production Deployment
+
+For production deployment without Docker:
 
 1. **Backend**:
    - Change the `SECRET_KEY` in `main.py`

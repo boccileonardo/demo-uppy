@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  backend-dev:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: demo-uppy-backend-dev
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./demo_uploader.db
+      - SECRET_KEY=dev-secret-key-not-for-production
+      - UPLOAD_DIR=/app/uploads
+    volumes:
+      - ./backend:/app
+      - ./data:/app/data
+      - backend_uploads_dev:/app/uploads
+    networks:
+      - demo-uppy-dev-network
+    restart: unless-stopped
+    command: ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: demo-uppy-frontend-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - demo-uppy-dev-network
+    restart: unless-stopped
+    depends_on:
+      - backend-dev
+
+volumes:
+  backend_uploads_dev:
+    driver: local
+
+networks:
+  demo-uppy-dev-network:
+    driver: bridge
