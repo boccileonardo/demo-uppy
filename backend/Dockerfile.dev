@@ -1,0 +1,44 @@
+# Multi-stage Dockerfile following UV best practices
+# https://docs.astral.sh/uv/guides/integration/docker/
+
+# Use Python 3.12 slim image
+FROM python:3.12-slim
+
+# Install uv by copying from the official image (recommended approach)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Set working directory
+WORKDIR /app
+
+# Enable bytecode compilation for better performance
+ENV UV_COMPILE_BYTECODE=1
+
+# Configure UV for better Docker performance
+ENV UV_LINK_MODE=copy
+
+# Copy dependency files for better layer caching
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies in a separate layer for better caching
+# This layer will only be rebuilt when dependencies change
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project
+
+# Copy the project source code
+# This layer will be rebuilt every time source code changes
+COPY . .
+
+# Install the project itself with cache mount
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked
+
+# Create uploads directory
+RUN mkdir -p uploads
+
+# Expose port
+EXPOSE 8000
+
+# Command to run the application
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -21,11 +21,11 @@ import aiofiles
 from pydantic import BaseModel
 
 # Configuration
-SECRET_KEY = "your-secret-key-change-in-production"
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-UPLOAD_DIR = Path("../data")  # Store files in the main repo's data directory
-DATABASE_URL = "sqlite:///../data/demo_uploader.db"
+UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "../data"))  # Store files in the configured upload directory
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///../data/demo_uploader.db")
 
 # Create upload directory if it doesn't exist
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -165,6 +165,10 @@ async def startup_event():
 @app.get("/")
 async def root():
     return {"message": "Demo Uploader API", "version": "1.0.0"}
+
+@app.get("/api/health")
+async def health_check():
+    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
 
 @app.post("/api/auth/login", response_model=Token)
 async def login(user_login: UserLogin, db: Session = Depends(get_db)):
