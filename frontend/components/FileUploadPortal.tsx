@@ -7,7 +7,6 @@ import {
   Upload, 
   LogOut, 
   User, 
-  AlertCircle,
   Settings
 } from 'lucide-react';
 import { UppyFileUploader } from './UppyFileUploader';
@@ -15,18 +14,20 @@ import { Notification, LoadingSpinner, EmptyState, StatCard, FileItem } from './
 import { apiService } from '../services/api';
 import { useNotification, useUploadStats, useLoading } from '../hooks';
 import { formatFileSize, formatDate } from '../utils/helpers';
-import { FILE_UPLOAD, STORAGE_INFO } from '../config/constants';
-import type { UploadedFile, FileUploadPortalProps } from '../types';
+import { FILE_UPLOAD } from '../config/constants';
+import type { UploadedFile, FileUploadPortalProps, UserStorageInfo } from '../types';
 
 export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
   const { notification, showNotification } = useNotification();
   const { stats, incrementStats, updateStats } = useUploadStats();
   const { isLoading, withLoading } = useLoading();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [storageInfo, setStorageInfo] = useState<UserStorageInfo | null>(null);
 
-  // Load files on component mount
+  // Load files and storage info on component mount
   useEffect(() => {
     loadFiles();
+    loadStorageInfo();
   }, []);
 
   const loadFiles = async () => {
@@ -35,6 +36,16 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
       setUploadedFiles(files);
       updateStats(files);
     });
+  };
+
+  const loadStorageInfo = async () => {
+    try {
+      const info = await apiService.getUserStorageInfo();
+      setStorageInfo(info);
+    } catch (error) {
+      console.error('Failed to load storage info:', error);
+      showNotification('Failed to load storage information', 'error');
+    }
   };
 
   const handleUploadSuccess = (file: File, response: any) => {
@@ -137,52 +148,6 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
                 />
               </CardContent>
             </Card>
-
-            {/* Upload Guidelines */}
-            <Card className="mt-6 flex-1">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <AlertCircle className="w-5 h-5 mr-2" />
-                  Upload Guidelines & Security
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                  <div>
-                    <h4 className="text-sm font-medium mb-3">Allowed File Types:</h4>
-                    <ul className="space-y-1 text-gray-600">
-                      <li>• Structured Data (CSV, JSON, TXT)</li>
-                      <li>• Excel Spreadsheets (XLSX, XLS)</li>
-                      <li>• XML Documents</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium mb-3">Restrictions:</h4>
-                    <ul className="space-y-1 text-gray-600">
-                      <li>• Maximum file size: 100MB</li>
-                      <li>• Maximum files per upload: 10</li>
-                      <li>• Files are virus-scanned before storage</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium mb-3">Security Features:</h4>
-                    <ul className="space-y-1 text-gray-600">
-                      <li>• JWT-based authentication</li>
-                      <li>• Local secure storage</li>
-                      <li>• File type validation</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium mb-3">Storage Details:</h4>
-                    <ul className="space-y-1 text-gray-600">
-                      <li>• Local filesystem storage</li>
-                      <li>• Persistent file management</li>
-                      <li>• Demo-ready configuration</li>
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Stats & Files Sidebar */}
@@ -233,19 +198,15 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
                   <Separator />
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>Storage Account</span>
-                    <span className="font-mono">{STORAGE_INFO.ACCOUNT_NAME}</span>
+                    <span className="font-mono">{storageInfo?.account_name || 'Loading...'}</span>
                   </div>
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>Container Name</span>
-                    <span className="font-mono">{STORAGE_INFO.CONTAINER_NAME}</span>
+                    <span className="font-mono">{storageInfo?.container_name || 'Loading...'}</span>
                   </div>
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>Storage Location</span>
-                    <span>{STORAGE_INFO.LOCATION}</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-500">
-                    <span>Redundancy</span>
-                    <span>{STORAGE_INFO.REDUNDANCY}</span>
+                    <span>{storageInfo?.location || 'Loading...'}</span>
                   </div>
                 </div>
               </CardContent>

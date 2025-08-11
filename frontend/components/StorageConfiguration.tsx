@@ -187,7 +187,7 @@ export function StorageConfiguration() {
                         </Badge>
                       </CardTitle>
                       <p className="text-sm text-muted-foreground">
-                        {account.location} • {account.redundancy} • {account.containers.length} containers
+                        {account.location} • {account.containers.length} containers
                       </p>
                     </div>
                   </div>

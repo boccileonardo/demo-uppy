@@ -24,7 +24,7 @@
   --destructive-foreground: #ffffff;
   --border: rgba(0, 0, 0, 0.1);
   --input: transparent;
-  --input-background: #f3f3f5;
+  --input-background: #ffffff;
   --switch-background: #cbced4;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
@@ -63,7 +63,8 @@
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
   --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
+  --input: transparent;
+  --input-background: oklch(0.205 0 0);
   --ring: oklch(0.439 0 0);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
@@ -131,6 +132,86 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Ensure text selection works properly for all text elements */
+  *,
+  *::before,
+  *::after {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+  }
+
+  /* Override for elements that shouldn't be selectable */
+  button,
+  [role="button"],
+  [role="tab"],
+  [role="option"],
+  [data-radix-select-item],
+  .select-none,
+  label {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+  }
+
+  /* Force text selection for input elements */
+  input,
+  textarea,
+  [contenteditable],
+  [data-slot="input"] {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+  }
+
+  /* Extra specific targeting for form inputs */
+  [data-radix-dialog-content] input,
+  [data-radix-dialog-content] textarea,
+  .space-y-4 input,
+  .space-y-2 input,
+  form input,
+  div input {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+  }
+
+  /* Global text selection styling */
+  *::selection {
+    background-color: #dbeafe !important;
+    color: #1e3a8a !important;
+  }
+
+  .dark *::selection {
+    background-color: #1e3a8a !important;
+    color: #dbeafe !important;
+  }
+
+  /* Force selection styles on inputs specifically */
+  input::selection,
+  textarea::selection {
+    background-color: #dbeafe !important;
+    color: #1e3a8a !important;
+  }
+
+  .dark input::selection,
+  .dark textarea::selection {
+    background-color: #1e3a8a !important;
+    color: #dbeafe !important;
+  }
+
+  /* Utility class for forcing text selection */
+  .force-text-select {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+  }
 }
 
 /**
@@ -190,4 +271,30 @@
 
 html {
   font-size: var(--font-size);
+}
+
+@layer utilities {
+  /* Ultra-specific text selection overrides */
+  .force-text-select,
+  input.force-text-select,
+  [data-slot="input"].force-text-select {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+  }
+
+  .force-text-select::selection,
+  input.force-text-select::selection,
+  [data-slot="input"].force-text-select::selection {
+    background-color: #dbeafe !important;
+    color: #1e3a8a !important;
+  }
+
+  .dark .force-text-select::selection,
+  .dark input.force-text-select::selection,
+  .dark [data-slot="input"].force-text-select::selection {
+    background-color: #1e3a8a !important;
+    color: #dbeafe !important;
+  }
 }

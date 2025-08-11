@@ -237,10 +237,6 @@ export function AuthSection({ onLogin, onSetPassword, isLoading }: AuthSectionPr
             </div>
           </div>
         </div>
-
-        <p className="text-center text-sm text-gray-500 mt-4">
-          Demo mode - Use any email to simulate the login process
-        </p>
       </div>
     </div>
   );

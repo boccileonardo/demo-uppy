@@ -189,7 +189,7 @@ export function UppyFileUploader({
       <div className="mt-6 p-4 bg-gray-50 rounded-lg">
         <h4 className="text-sm font-medium text-gray-900 mb-2">Upload Guidelines:</h4>
         <ul className="text-xs text-gray-600 space-y-1">
-          <li>• Maximum file size: {Math.round(maxFileSize / (1024 * 1024))}MB</li>
+          <li>• Maximum file size: {Math.round(maxFileSize / (1024 * 1024) / 1000 )} GB</li>
           <li>• Maximum {maxNumberOfFiles} files per upload</li>
           <li>• Allowed types: {allowedFileTypes.join(', ')}</li>
           <li>• Files are uploaded to secure storage</li>
