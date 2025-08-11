@@ -19,10 +19,10 @@ import { FILE_UPLOAD, STORAGE_INFO } from '../config/constants';
 import type { UploadedFile, FileUploadPortalProps } from '../types';
 
 export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const { notification, showNotification } = useNotification();
-  const { stats, updateStats, incrementStats } = useUploadStats();
+  const { stats, incrementStats, updateStats } = useUploadStats();
   const { isLoading, withLoading } = useLoading();
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
   // Load files on component mount
   useEffect(() => {

@@ -165,6 +165,12 @@ export const useDebounce = <T>(value: T, delay: number): T => {
   return debouncedValue;
 };
 
+// Re-export new hooks
+export { useApi, usePaginatedApi } from './useApi';
+export { useForm, validators } from './useForm';
+export { useUserManagement } from './useUserManagement';
+export { useStorageManagement } from './useStorageManagement';
+
 /**
  * Hook for managing previous value
  */

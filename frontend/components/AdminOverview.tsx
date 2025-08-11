@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
 import { 
@@ -9,34 +8,39 @@ import {
   AlertTriangle,
   CheckCircle
 } from 'lucide-react';
-import { apiService } from '../services/api';
-import type { AdminStats, AdminActivity } from '../types';
+import { cachedApiService } from '../services/cachedApi';
+import { useQuery } from '../hooks/useQuery';
 
 export function AdminOverview() {
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [recentActivity, setRecentActivity] = useState<AdminActivity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use cached queries for admin stats and activity
+  const {
+    data: stats,
+    loading: statsLoading,
+    error: statsError
+  } = useQuery(
+    cachedApiService.getAdminStats,
+    [],
+    {
+      staleTime: 2 * 60 * 1000, // 2 minutes - stats change frequently
+      enabled: true
+    }
+  );
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [statsData, activityData] = await Promise.all([
-          apiService.getAdminStats(),
-          apiService.getAdminActivity(5)
-        ]);
-        setStats(statsData);
-        setRecentActivity(activityData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load admin data');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const {
+    data: recentActivity,
+    loading: activityLoading,
+    error: activityError
+  } = useQuery(
+    cachedApiService.getAdminActivity,
+    [5], // limit to 5 activities
+    {
+      staleTime: 1 * 60 * 1000, // 1 minute - activity changes very frequently
+      enabled: true
+    }
+  );
 
-    fetchData();
-  }, []);
+  const loading = statsLoading || activityLoading;
+  const error = statsError || activityError;
 
   if (loading) {
     return (
@@ -44,14 +48,56 @@ export function AdminOverview() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
             <Card key={i}>
-              <CardContent className="p-6">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-                  <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+                  <div className="h-4 bg-gray-200 rounded w-20 mb-1"></div>
+                </div>
+                <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="animate-pulse">
+                  <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-24"></div>
                 </div>
               </CardContent>
             </Card>
           ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <div className="animate-pulse">
+                <div className="h-5 bg-gray-200 rounded w-32"></div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="h-4 bg-gray-200 rounded w-full mb-1"></div>
+                    <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <div className="animate-pulse">
+                <div className="h-5 bg-gray-200 rounded w-32"></div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="h-4 bg-gray-200 rounded w-full mb-1"></div>
+                    <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -145,7 +191,7 @@ export function AdminOverview() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {recentActivity.length === 0 ? (
+            {!recentActivity || recentActivity.length === 0 ? (
               <div className="text-center py-8">
                 <Activity className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                 <p className="text-sm text-gray-500">No recent activity</p>
@@ -173,7 +219,7 @@ export function AdminOverview() {
                     </div>
                     <span className="text-xs text-muted-foreground">{formatTime(activity.time)}</span>
                   </div>
-                  {index < recentActivity.length - 1 && <Separator className="mt-4" />}
+                  {index < (recentActivity?.length || 0) - 1 && <Separator className="mt-4" />}
                 </div>
               ))
             )}

@@ -34,18 +34,18 @@ export function AdminPanel() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="overview" className="flex items-center space-x-2">
-              <BarChart3 className="w-4 h-4" />
-              <span>Overview</span>
+          <TabsList className="grid w-full grid-cols-3 mb-8 min-h-[40px]">
+            <TabsTrigger value="overview" className="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3">
+              <BarChart3 className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm truncate">Overview</span>
             </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center space-x-2">
-              <Users className="w-4 h-4" />
-              <span>User Management</span>
+            <TabsTrigger value="users" className="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3">
+              <Users className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm truncate">Users</span>
             </TabsTrigger>
-            <TabsTrigger value="storage" className="flex items-center space-x-2">
-              <Database className="w-4 h-4" />
-              <span>Storage Configuration</span>
+            <TabsTrigger value="storage" className="flex items-center justify-center space-x-1 sm:space-x-2 px-2 sm:px-3">
+              <Database className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm truncate">Storage</span>
             </TabsTrigger>
           </TabsList>
           
