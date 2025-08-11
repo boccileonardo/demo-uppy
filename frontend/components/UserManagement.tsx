@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -15,106 +15,83 @@ import {
   User,
   Shield,
   UserCheck,
-  UserX
+  UserX,
+  AlertTriangle
 } from 'lucide-react';
-
-interface AppUser {
-  id: string;
-  email: string;
-  name: string;
-  role: 'user' | 'admin';
-  isActive: boolean;
-  createdAt: Date;
-  lastLogin?: Date;
-  storageAccount: string;
-  container: string;
-}
+import { apiService } from '../services/api';
+import type { AppUser, UserCreateRequest, UserUpdateRequest } from '../types';
 
 export function UserManagement() {
-  const [users, setUsers] = useState<AppUser[]>([
-    {
-      id: '1',
-      email: 'john.doe@company.com',
-      name: 'John Doe',
-      role: 'user',
-      isActive: true,
-      createdAt: new Date('2024-01-15'),
-      lastLogin: new Date('2024-01-20'),
-      storageAccount: 'secureuploadsa01',
-      container: 'user-uploads'
-    },
-    {
-      id: '2',
-      email: 'jane.smith@company.com',
-      name: 'Jane Smith',
-      role: 'user',
-      isActive: true,
-      createdAt: new Date('2024-01-10'),
-      lastLogin: new Date('2024-01-21'),
-      storageAccount: 'secureuploadsa01',
-      container: 'user-uploads'
-    },
-    {
-      id: '3',
-      email: 'admin@company.com',
-      name: 'System Admin',
-      role: 'admin',
-      isActive: true,
-      createdAt: new Date('2024-01-01'),
-      lastLogin: new Date('2024-01-21'),
-      storageAccount: 'secureuploadsa01',
-      container: 'admin-uploads'
-    },
-    {
-      id: '4',
-      email: 'bob.wilson@company.com',
-      name: 'Bob Wilson',
-      role: 'user',
-      isActive: false,
-      createdAt: new Date('2024-01-12'),
-      storageAccount: 'secureuploadsa02',
-      container: 'user-uploads'
-    }
-  ]);
-
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
-  const [createForm, setCreateForm] = useState({
+  const [createForm, setCreateForm] = useState<UserCreateRequest>({
     email: '',
     name: '',
-    role: 'user' as 'user' | 'admin',
-    storageAccount: 'secureuploadsa01',
+    role: 'user',
+    storage_account: 'secureuploadsa01',
     container: 'user-uploads'
   });
 
-  const filteredUsers = users.filter(user =>
-    user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const fetchUsers = async (page = currentPage, search = searchQuery) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await apiService.getUsers(search, page);
+      setUsers(response.users);
+      setTotalPages(response.pages);
+      setTotalUsers(response.total);
+      setCurrentPage(response.page);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load users');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleCreateUser = () => {
-    const newUser: AppUser = {
-      id: Math.random().toString(36).substr(2, 9),
-      email: createForm.email,
-      name: createForm.name,
-      role: createForm.role,
-      isActive: true,
-      createdAt: new Date(),
-      storageAccount: createForm.storageAccount,
-      container: createForm.container
-    };
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
-    setUsers(prev => [newUser, ...prev]);
-    setCreateForm({
-      email: '',
-      name: '',
-      role: 'user',
-      storageAccount: 'secureuploadsa01',
-      container: 'user-uploads'
-    });
-    setIsCreateDialogOpen(false);
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setCurrentPage(1); // Reset to first page when searching
+      fetchUsers(1, searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchUsers(page, searchQuery);
+  };
+
+  const filteredUsers = users;
+
+  const handleCreateUser = async () => {
+    try {
+      await apiService.createUser(createForm);
+      setCreateForm({
+        email: '',
+        name: '',
+        role: 'user',
+        storage_account: 'secureuploadsa01',
+        container: 'user-uploads'
+      });
+      setIsCreateDialogOpen(false);
+      // Refresh current page
+      fetchUsers(currentPage, searchQuery);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create user');
+    }
   };
 
   const handleEditUser = (user: AppUser) => {
@@ -122,30 +99,64 @@ export function UserManagement() {
     setIsEditDialogOpen(true);
   };
 
-  const handleUpdateUser = () => {
+  const handleUpdateUser = async () => {
     if (!editingUser) return;
 
-    setUsers(prev => prev.map(user =>
-      user.id === editingUser.id ? editingUser : user
-    ));
-    setEditingUser(null);
-    setIsEditDialogOpen(false);
+    try {
+      const updateData: UserUpdateRequest = {
+        email: editingUser.email,
+        name: editingUser.name,
+        role: editingUser.role,
+        storage_account: editingUser.storageAccount,
+        container: editingUser.container,
+        is_active: editingUser.isActive
+      };
+      
+      await apiService.updateUser(editingUser.id, updateData);
+      setEditingUser(null);
+      setIsEditDialogOpen(false);
+      // Refresh current page
+      fetchUsers(currentPage, searchQuery);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update user');
+    }
   };
 
-  const handleToggleUserStatus = (userId: string) => {
-    setUsers(prev => prev.map(user =>
-      user.id === userId ? { ...user, isActive: !user.isActive } : user
-    ));
+  const handleToggleUserStatus = async (userId: string) => {
+    try {
+      await apiService.toggleUserStatus(userId);
+      // Refresh current page
+      fetchUsers(currentPage, searchQuery);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to toggle user status');
+    }
   };
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = async (userId: string) => {
     if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      setUsers(prev => prev.filter(user => user.id !== userId));
+      try {
+        await apiService.deleteUser(userId);
+        // Refresh current page
+        fetchUsers(currentPage, searchQuery);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to delete user');
+      }
     }
   };
 
   return (
     <div className="space-y-6">
+      {error && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2 text-red-600">
+              <AlertTriangle className="w-4 h-4" />
+              <p className="text-sm">{error}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="relative">
@@ -211,8 +222,8 @@ export function UserManagement() {
                 <div className="space-y-2">
                   <Label htmlFor="storageAccount">Storage Account</Label>
                   <Select
-                    value={createForm.storageAccount}
-                    onValueChange={(value) => setCreateForm({ ...createForm, storageAccount: value })}
+                    value={createForm.storage_account}
+                    onValueChange={(value) => setCreateForm({ ...createForm, storage_account: value })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -266,7 +277,21 @@ export function UserManagement() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {filteredUsers.length === 0 ? (
+            {loading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredUsers.length === 0 ? (
               <div className="text-center py-8">
                 <User className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                 <p className="text-sm text-gray-500">
@@ -305,9 +330,9 @@ export function UserManagement() {
                         </div>
                         <p className="text-xs text-gray-500 truncate">{user.email}</p>
                         <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
-                          <span>Created: {user.createdAt.toLocaleDateString()}</span>
+                          <span>Created: {new Date(user.createdAt).toLocaleDateString()}</span>
                           {user.lastLogin && (
-                            <span>Last login: {user.lastLogin.toLocaleDateString()}</span>
+                            <span>Last login: {new Date(user.lastLogin).toLocaleDateString()}</span>
                           )}
                         </div>
                         <div className="flex items-center space-x-4 text-xs text-gray-400 mt-1">
@@ -353,6 +378,63 @@ export function UserManagement() {
             )}
           </div>
         </CardContent>
+        
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Showing {users.length} of {totalUsers} users
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNumber;
+                    if (totalPages <= 5) {
+                      pageNumber = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNumber = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNumber = totalPages - 4 + i;
+                    } else {
+                      pageNumber = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNumber}
+                        variant={currentPage === pageNumber ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(pageNumber)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {pageNumber}
+                      </Button>
+                    );
+                  })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Edit User Dialog */}

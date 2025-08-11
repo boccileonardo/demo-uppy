@@ -9,6 +9,12 @@ export const API_CONFIG = {
     SET_PASSWORD: '/api/auth/set-password',
     UPLOAD: '/api/upload',
     FILES: '/api/files',
+    // Admin endpoints
+    ADMIN_STATS: '/api/admin/stats',
+    ADMIN_ACTIVITY: '/api/admin/activity',
+    ADMIN_USERS: '/api/admin/users',
+    ADMIN_STORAGE_ACCOUNTS: '/api/admin/storage-accounts',
+    ADMIN_CONTAINERS: '/api/admin/containers',
   },
   TIMEOUT: 30000,
 } as const;
