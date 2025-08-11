@@ -132,6 +132,10 @@ export interface UserCreateRequest {
   container: string;
 }
 
+export interface UserCreateResponse extends AppUser {
+  temporaryPassword: string;
+}
+
 export interface UserUpdateRequest {
   email: string;
   name: string;

@@ -19,7 +19,8 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { apiService } from '../services/api';
-import type { AppUser, UserCreateRequest, UserUpdateRequest } from '../types';
+import type { AppUser, UserCreateRequest, UserUpdateRequest, UserCreateResponse } from '../types';
+import { TemporaryPasswordModal } from './TemporaryPasswordModal';
 
 export function UserManagement() {
   const [users, setUsers] = useState<AppUser[]>([]);
@@ -32,6 +33,8 @@ export function UserManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [newUserData, setNewUserData] = useState<UserCreateResponse | null>(null);
   const [createForm, setCreateForm] = useState<UserCreateRequest>({
     email: '',
     name: '',
@@ -78,7 +81,8 @@ export function UserManagement() {
 
   const handleCreateUser = async () => {
     try {
-      await apiService.createUser(createForm);
+      const response = await apiService.createUser(createForm);
+      setNewUserData(response);
       setCreateForm({
         email: '',
         name: '',
@@ -87,6 +91,7 @@ export function UserManagement() {
         container: 'user-uploads'
       });
       setIsCreateDialogOpen(false);
+      setIsPasswordModalOpen(true);
       // Refresh current page
       fetchUsers(currentPage, searchQuery);
     } catch (err) {
@@ -525,6 +530,20 @@ export function UserManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Temporary Password Modal */}
+      {newUserData && (
+        <TemporaryPasswordModal
+          isOpen={isPasswordModalOpen}
+          onClose={() => {
+            setIsPasswordModalOpen(false);
+            setNewUserData(null);
+          }}
+          userName={newUserData.name}
+          userEmail={newUserData.email}
+          temporaryPassword={newUserData.temporaryPassword}
+        />
+      )}
     </div>
   );
 }

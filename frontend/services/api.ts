@@ -12,6 +12,7 @@ import type {
   AdminActivity,
   AppUser,
   UserCreateRequest,
+  UserCreateResponse,
   UserUpdateRequest,
   StorageAccountData,
   StorageAccountCreateRequest,
@@ -161,8 +162,8 @@ class ApiService {
     return this.request(`${API_CONFIG.ENDPOINTS.ADMIN_USERS}?${params.toString()}`);
   }
 
-  async createUser(userData: UserCreateRequest): Promise<AppUser> {
-    return this.request<AppUser>(API_CONFIG.ENDPOINTS.ADMIN_USERS, {
+  async createUser(userData: UserCreateRequest): Promise<UserCreateResponse> {
+    return this.request<UserCreateResponse>(API_CONFIG.ENDPOINTS.ADMIN_USERS, {
       method: 'POST',
       body: JSON.stringify(userData),
     });

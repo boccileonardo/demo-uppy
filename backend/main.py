@@ -190,6 +190,27 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
+def generate_readable_password() -> str:
+    """Generate a human-readable temporary password"""
+    import random
+    
+    adjectives = [
+        "Swift", "Bright", "Clear", "Smart", "Quick", "Fresh", "Bold", "Clean",
+        "Sharp", "Cool", "Fast", "Calm", "Strong", "Safe", "Blue", "Green"
+    ]
+    
+    nouns = [
+        "River", "Mountain", "Ocean", "Forest", "Cloud", "Star", "Moon", "Sun",
+        "Bridge", "Tower", "Garden", "Valley", "Harbor", "Castle", "Island", "Peak"
+    ]
+    
+    # Format: Adjective + Noun + 3 digits
+    adjective = random.choice(adjectives)
+    noun = random.choice(nouns)
+    number = random.randint(100, 999)
+    
+    return f"{adjective}{noun}{number}"
+
 # JWT utilities
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -242,7 +263,7 @@ def init_demo_data(db: Session):
                 email=user_data["email"],
                 name=user_data["name"],
                 role=user_data["role"],
-                password_hash=hash_password("temporary123"),  # Temporary password
+                password_hash=hash_password(generate_readable_password()),  # Use readable password
                 is_first_login=True,
                 storage_account="secureuploadsa01",
                 container="user-uploads" if user_data["role"] == "user" else "admin-uploads"
@@ -313,9 +334,9 @@ async def startup_event():
 async def root():
     return {"message": "Demo Uploader API", "version": "1.0.0"}
 
-@app.get("/api/health")
+@app.get("/health")
 async def health_check():
-    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat() + "Z"}
 
 @app.post("/api/auth/login", response_model=Token)
 async def login(user_login: UserLogin, db: Session = Depends(get_db)):
@@ -323,6 +344,11 @@ async def login(user_login: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == user_login.email).first()
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # Check if user is active
+    if not user.is_active:
+        log_activity(db, user.email, "Login failed", "error", "Account is inactive")
+        raise HTTPException(status_code=401, detail="Account is inactive. Please contact an administrator.")
     
     # Check if first login (needs password setup)
     if user.is_first_login:
@@ -515,7 +541,7 @@ async def get_recent_activity(
             "id": activity.id,
             "user": activity.user_email,
             "action": activity.action,
-            "time": activity.created_at.isoformat(),
+            "time": activity.created_at.isoformat() + "Z",  # Add Z to indicate UTC
             "status": activity.status,
             "details": activity.details
         }
@@ -552,8 +578,8 @@ async def get_users(
                 "name": user.name,
                 "role": user.role,
                 "isActive": user.is_active,
-                "createdAt": user.created_at,
-                "lastLogin": user.last_login,
+                "createdAt": user.created_at.isoformat() + "Z" if user.created_at else None,
+                "lastLogin": user.last_login.isoformat() + "Z" if user.last_login else None,
                 "storageAccount": user.storage_account,
                 "container": user.container
             }
@@ -576,6 +602,9 @@ async def create_user(
     if existing_user:
         raise HTTPException(status_code=400, detail="User with this email already exists")
     
+    # Generate readable temporary password
+    temp_password = generate_readable_password()
+    
     # Create new user
     new_user = User(
         email=user_data.email,
@@ -583,7 +612,7 @@ async def create_user(
         role=user_data.role,
         storage_account=user_data.storage_account,
         container=user_data.container,
-        password_hash=hash_password("temporary123"),  # Temporary password
+        password_hash=hash_password(temp_password),
         is_first_login=True
     )
     
@@ -599,10 +628,11 @@ async def create_user(
         "name": new_user.name,
         "role": new_user.role,
         "isActive": new_user.is_active,
-        "createdAt": new_user.created_at,
-        "lastLogin": new_user.last_login,
+        "createdAt": new_user.created_at.isoformat() + "Z" if new_user.created_at else None,
+        "lastLogin": new_user.last_login.isoformat() + "Z" if new_user.last_login else None,
         "storageAccount": new_user.storage_account,
-        "container": new_user.container
+        "container": new_user.container,
+        "temporaryPassword": temp_password  # Include the temporary password in response
     }
 
 @app.put("/api/admin/users/{user_id}")
