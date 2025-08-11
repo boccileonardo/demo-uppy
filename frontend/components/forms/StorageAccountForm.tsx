@@ -20,13 +20,6 @@ const locationOptions = [
   { value: 'East US 2', label: 'East US 2' },
 ];
 
-const redundancyOptions = [
-  { value: 'LRS', label: 'LRS' },
-  { value: 'GRS', label: 'GRS' },
-  { value: 'ZRS', label: 'ZRS' },
-  { value: 'GZRS', label: 'GZRS' },
-];
-
 export function StorageAccountForm({ 
   open, 
   onClose, 
@@ -38,15 +31,13 @@ export function StorageAccountForm({
   const initialValues = {
     name: account?.name || '',
     connection_string: account?.connectionString || '',
-    location: account?.location || 'West US 2',
-    redundancy: account?.redundancy || 'GRS',
+    location: account?.location || 'Unknown',
   };
 
   const validationRules = [
     { field: 'name' as const, validator: validators.required('Account name is required') },
     { field: 'connection_string' as const, validator: validators.required('Connection string is required') },
     { field: 'location' as const, validator: validators.required('Location is required') },
-    { field: 'redundancy' as const, validator: validators.required('Redundancy is required') },
   ];
 
   const form = useForm(initialValues, validationRules);
@@ -108,15 +99,6 @@ export function StorageAccountForm({
           onChange={(value) => form.setValue('location', value)}
           options={locationOptions}
           error={form.errors.location}
-          required
-        />
-
-        <SelectField
-          label="Redundancy"
-          value={form.values.redundancy}
-          onChange={(value) => form.setValue('redundancy', value)}
-          options={redundancyOptions}
-          error={form.errors.redundancy}
           required
         />
       </div>

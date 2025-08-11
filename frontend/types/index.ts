@@ -70,6 +70,12 @@ export interface NotificationState {
   type: 'success' | 'error' | 'info' | 'warning';
 }
 
+export interface UserStorageInfo {
+  account_name: string;
+  container_name: string;
+  location: string;
+}
+
 // Component Props Types
 export interface AuthSectionProps {
   onLogin: (email: string, password: string) => Promise<{ needsPasswordSetup: boolean }>;
@@ -150,7 +156,6 @@ export interface StorageAccountData {
   name: string;
   connectionString: string;
   location: string;
-  redundancy: 'LRS' | 'GRS' | 'ZRS' | 'GZRS';
   isActive: boolean;
   createdAt: string;
   containers: ContainerData[];
@@ -169,14 +174,12 @@ export interface StorageAccountCreateRequest {
   name: string;
   connection_string: string;
   location: string;
-  redundancy: 'LRS' | 'GRS' | 'ZRS' | 'GZRS';
 }
 
 export interface StorageAccountUpdateRequest {
   name: string;
   connection_string: string;
   location: string;
-  redundancy: 'LRS' | 'GRS' | 'ZRS' | 'GZRS';
   is_active: boolean;
 }
 

@@ -71,7 +71,6 @@ class StorageAccount(Base):
     name = Column(String, unique=True, index=True)
     connection_string = Column(Text)
     location = Column(String)
-    redundancy = Column(String)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -125,13 +124,11 @@ class StorageAccountCreate(BaseModel):
     name: str
     connection_string: str
     location: str
-    redundancy: str
 
 class StorageAccountUpdate(BaseModel):
     name: str
     connection_string: str
     location: str
-    redundancy: str
     is_active: bool
 
 class ContainerCreate(BaseModel):
@@ -277,14 +274,12 @@ def init_demo_data(db: Session):
             "name": "secureuploadsa01",
             "connection_string": "DefaultEndpointsProtocol=https;AccountName=secureuploadsa01;AccountKey=***",
             "location": "West US 2",
-            "redundancy": "GRS"
         },
         {
             "id": "sa2", 
             "name": "secureuploadsa02",
             "connection_string": "DefaultEndpointsProtocol=https;AccountName=secureuploadsa02;AccountKey=***",
             "location": "East US",
-            "redundancy": "LRS"
         }
     ]
     
@@ -296,7 +291,6 @@ def init_demo_data(db: Session):
                 name=account_data["name"],
                 connection_string=account_data["connection_string"],
                 location=account_data["location"],
-                redundancy=account_data["redundancy"]
             )
             db.add(account)
     
@@ -488,6 +482,35 @@ async def list_files(
         }
         for f in files
     ]
+
+@app.get("/api/user/storage-info")
+async def get_user_storage_info(
+    email: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Get storage information for the current user"""
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get storage account details
+    storage_account = db.query(StorageAccount).filter(
+        StorageAccount.name == user.storage_account
+    ).first()
+    
+    if not storage_account:
+        # Return default info if storage account not found
+        return {
+            "account_name": user.storage_account,
+            "container_name": user.container,
+            "location": "Unknown",
+        }
+    
+    return {
+        "account_name": storage_account.name,
+        "container_name": user.container,
+        "location": storage_account.location,
+    }
 
 # Admin API Endpoints
 @app.get("/api/admin/stats", response_model=AdminStats)
@@ -763,7 +786,6 @@ async def get_storage_accounts(
             "name": account.name,
             "connectionString": account.connection_string,
             "location": account.location,
-            "redundancy": account.redundancy,
             "isActive": account.is_active,
             "createdAt": account.created_at,
             "containers": container_data
@@ -790,7 +812,6 @@ async def create_storage_account(
         name=account_data.name,
         connection_string=account_data.connection_string,
         location=account_data.location,
-        redundancy=account_data.redundancy
     )
     
     db.add(new_account)
@@ -804,7 +825,6 @@ async def create_storage_account(
         "name": new_account.name,
         "connectionString": new_account.connection_string,
         "location": new_account.location,
-        "redundancy": new_account.redundancy,
         "isActive": new_account.is_active,
         "createdAt": new_account.created_at,
         "containers": []
@@ -826,7 +846,6 @@ async def update_storage_account(
     account.name = account_data.name
     account.connection_string = account_data.connection_string
     account.location = account_data.location
-    account.redundancy = account_data.redundancy
     account.is_active = account_data.is_active
     
     db.commit()
@@ -839,7 +858,6 @@ async def update_storage_account(
         "name": account.name,
         "connectionString": account.connection_string,
         "location": account.location,
-        "redundancy": account.redundancy,
         "isActive": account.is_active,
         "createdAt": account.created_at
     }

@@ -17,7 +17,8 @@ import type {
   StorageAccountData,
   StorageAccountCreateRequest,
   StorageAccountUpdateRequest,
-  ContainerCreateRequest
+  ContainerCreateRequest,
+  UserStorageInfo
 } from '../types';
 
 class ApiService {
@@ -137,6 +138,10 @@ class ApiService {
 
   async listFiles(): Promise<UploadedFile[]> {
     return this.request<UploadedFile[]>(API_CONFIG.ENDPOINTS.FILES);
+  }
+
+  async getUserStorageInfo(): Promise<UserStorageInfo> {
+    return this.request<UserStorageInfo>(API_CONFIG.ENDPOINTS.USER_STORAGE_INFO);
   }
 
   // Admin endpoints

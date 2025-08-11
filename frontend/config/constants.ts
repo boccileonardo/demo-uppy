@@ -9,6 +9,7 @@ export const API_CONFIG = {
     SET_PASSWORD: '/api/auth/set-password',
     UPLOAD: '/api/upload',
     FILES: '/api/files',
+    USER_STORAGE_INFO: '/api/user/storage-info',
     // Admin endpoints
     ADMIN_STATS: '/api/admin/stats',
     ADMIN_ACTIVITY: '/api/admin/activity',
@@ -20,8 +21,8 @@ export const API_CONFIG = {
 } as const;
 
 export const FILE_UPLOAD = {
-  MAX_FILE_SIZE: 100 * 1024 * 1024, // 100MB
-  MAX_FILES: 10,
+  MAX_FILE_SIZE: 10000 * 1024 * 1024, // 10GB
+  MAX_FILES: 15,
   ALLOWED_TYPES: [
     'text/csv',
     'application/json', 
@@ -31,7 +32,9 @@ export const FILE_UPLOAD = {
     '.txt',
     '.xlsx',
     '.xls',
-    '.xml'
+    '.xml',
+    '.avro',
+    '.parquet',
   ],
   CHUNK_SIZE: 1024 * 1024, // 1MB chunks
 } as const;
@@ -48,15 +51,7 @@ export const UI = {
   ANIMATION_DURATION: 200,
 } as const;
 
-export const STORAGE_INFO = {
-  ACCOUNT_NAME: 'secureuploadsa01',
-  CONTAINER_NAME: 'user-uploads',
-  LOCATION: 'Azure West US 2',
-  REDUNDANCY: 'Geo-redundant',
-} as const;
-
 export const DEMO_USERS = [
   { email: 'demo@example.com', name: 'Demo User' },
   { email: 'admin@example.com', name: 'Admin User' },
-  { email: 'test@example.com', name: 'Test User' },
 ] as const;
