@@ -7,7 +7,17 @@ import type {
   User, 
   LoginResponse, 
   FileUploadResponse, 
-  UploadedFile
+  UploadedFile,
+  AdminStats,
+  AdminActivity,
+  AppUser,
+  UserCreateRequest,
+  UserCreateResponse,
+  UserUpdateRequest,
+  StorageAccountData,
+  StorageAccountCreateRequest,
+  StorageAccountUpdateRequest,
+  ContainerCreateRequest
 } from '../types';
 
 class ApiService {
@@ -127,6 +137,92 @@ class ApiService {
 
   async listFiles(): Promise<UploadedFile[]> {
     return this.request<UploadedFile[]>(API_CONFIG.ENDPOINTS.FILES);
+  }
+
+  // Admin endpoints
+  async getAdminStats(): Promise<AdminStats> {
+    return this.request<AdminStats>(API_CONFIG.ENDPOINTS.ADMIN_STATS);
+  }
+
+  async getAdminActivity(limit: number = 20): Promise<AdminActivity[]> {
+    return this.request<AdminActivity[]>(`${API_CONFIG.ENDPOINTS.ADMIN_ACTIVITY}?limit=${limit}`);
+  }
+
+  async getUsers(search: string = '', page: number = 1, limit: number = 50): Promise<{
+    users: AppUser[];
+    total: number;
+    page: number;
+    pages: number;
+  }> {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+    
+    return this.request(`${API_CONFIG.ENDPOINTS.ADMIN_USERS}?${params.toString()}`);
+  }
+
+  async createUser(userData: UserCreateRequest): Promise<UserCreateResponse> {
+    return this.request<UserCreateResponse>(API_CONFIG.ENDPOINTS.ADMIN_USERS, {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async updateUser(userId: string, userData: UserUpdateRequest): Promise<AppUser> {
+    return this.request<AppUser>(`${API_CONFIG.ENDPOINTS.ADMIN_USERS}/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async deleteUser(userId: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`${API_CONFIG.ENDPOINTS.ADMIN_USERS}/${userId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async toggleUserStatus(userId: string): Promise<{ id: string; email: string; isActive: boolean }> {
+    return this.request(`${API_CONFIG.ENDPOINTS.ADMIN_USERS}/${userId}/toggle`, {
+      method: 'PATCH',
+    });
+  }
+
+  async getStorageAccounts(): Promise<StorageAccountData[]> {
+    return this.request<StorageAccountData[]>(API_CONFIG.ENDPOINTS.ADMIN_STORAGE_ACCOUNTS);
+  }
+
+  async createStorageAccount(accountData: StorageAccountCreateRequest): Promise<StorageAccountData> {
+    return this.request<StorageAccountData>(API_CONFIG.ENDPOINTS.ADMIN_STORAGE_ACCOUNTS, {
+      method: 'POST',
+      body: JSON.stringify(accountData),
+    });
+  }
+
+  async updateStorageAccount(accountId: string, accountData: StorageAccountUpdateRequest): Promise<StorageAccountData> {
+    return this.request<StorageAccountData>(`${API_CONFIG.ENDPOINTS.ADMIN_STORAGE_ACCOUNTS}/${accountId}`, {
+      method: 'PUT',
+      body: JSON.stringify(accountData),
+    });
+  }
+
+  async deleteStorageAccount(accountId: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`${API_CONFIG.ENDPOINTS.ADMIN_STORAGE_ACCOUNTS}/${accountId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async createContainer(containerData: ContainerCreateRequest): Promise<any> {
+    return this.request(API_CONFIG.ENDPOINTS.ADMIN_CONTAINERS, {
+      method: 'POST',
+      body: JSON.stringify(containerData),
+    });
+  }
+
+  async deleteContainer(containerId: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`${API_CONFIG.ENDPOINTS.ADMIN_CONTAINERS}/${containerId}`, {
+      method: 'DELETE',
+    });
   }
 
 

@@ -19,10 +19,10 @@ import { FILE_UPLOAD, STORAGE_INFO } from '../config/constants';
 import type { UploadedFile, FileUploadPortalProps } from '../types';
 
 export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const { notification, showNotification } = useNotification();
-  const { stats, updateStats, incrementStats } = useUploadStats();
+  const { stats, incrementStats, updateStats } = useUploadStats();
   const { isLoading, withLoading } = useLoading();
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
   // Load files on component mount
   useEffect(() => {
@@ -94,12 +94,14 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
                 <User className="w-4 h-4 text-gray-400" />
                 <span className="text-sm text-gray-600">{user.name}</span>
               </div>
-              <Link to="/admin">
-                <Button variant="outline" size="sm">
-                  <Settings className="w-4 h-4 mr-1" />
-                  Admin
-                </Button>
-              </Link>
+              {user.role === 'admin' && (
+                <Link to="/admin">
+                  <Button variant="outline" size="sm">
+                    <Settings className="w-4 h-4 mr-1" />
+                    Admin
+                  </Button>
+                </Link>
+              )}
               <Button variant="outline" size="sm" onClick={onLogout}>
                 <LogOut className="w-4 h-4 mr-1" />
                 Logout
