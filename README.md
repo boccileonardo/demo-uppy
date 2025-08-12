@@ -36,6 +36,8 @@ A full-stack file upload demo application with React frontend and FastAPI backen
 
 ```bash
 git clone https://github.com/boccileonardo/demo-uppy.git
+cd demo-uppy
+cp .env.example .env
 make dev
 ```
 
@@ -44,11 +46,7 @@ The application will be available at:
 - Backend API: http://localhost:8000
 - OpenAPI Docs: http://localhost:8000/docs
 
-The application comes with pre-created demo users:
 
-| Email | Initial Password |
-|-------|------------------|
-| `demo@example.com` | `temporary123` |
-| `admin@example.com` | `temporary123` |
+The application creates demo users on startup based on your `.env` configuration, `.env.example` if using `make dev` command.
 
 Once finished, you can clean up with `make clean` command.

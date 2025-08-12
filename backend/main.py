@@ -32,6 +32,21 @@ MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "10000"))
 MAX_FILES = int(os.getenv("MAX_FILES", "15"))
 CHUNK_SIZE_MB = int(os.getenv("CHUNK_SIZE_MB", "1"))
 
+# CORS configuration
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
+
+# Demo data configuration
+DEMO_ADMIN_EMAIL = os.getenv("DEMO_ADMIN_EMAIL", "admin@example.com")
+DEMO_ADMIN_NAME = os.getenv("DEMO_ADMIN_NAME", "Admin User")
+DEMO_ADMIN_PASSWORD = os.getenv("DEMO_ADMIN_PASSWORD", "temporary123")
+DEMO_USER_EMAIL = os.getenv("DEMO_USER_EMAIL", "demo@example.com")
+DEMO_USER_NAME = os.getenv("DEMO_USER_NAME", "Demo User")
+DEMO_USER_PASSWORD = os.getenv("DEMO_USER_PASSWORD", "temporary123")
+DEMO_STORAGE_ACCOUNT_NAME = os.getenv("DEMO_STORAGE_ACCOUNT_NAME", "secureuploadsa01")
+DEMO_STORAGE_LOCATION = os.getenv("DEMO_STORAGE_LOCATION", "Demo Region")
+DEMO_CONTAINER_USER = os.getenv("DEMO_CONTAINER_USER", "user-uploads")
+DEMO_CONTAINER_ADMIN = os.getenv("DEMO_CONTAINER_ADMIN", "admin-uploads")
+
 # Create upload directory if it doesn't exist
 UPLOAD_DIR.mkdir(exist_ok=True)
 
@@ -168,7 +183,7 @@ app = FastAPI(title="Demo Uploader API", version="1.0.0")
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -253,38 +268,49 @@ def log_activity(db: Session, user_email: str, action: str, status: str = "info"
 def init_demo_data(db: Session):
     # Demo users
     demo_users = [
-        {"email": "demo@example.com", "name": "Demo User", "role": "user"},
-        {"email": "admin@example.com", "name": "Admin User", "role": "admin"},
-        {"email": "test@example.com", "name": "Test User", "role": "user"},
+        {
+            "email": DEMO_USER_EMAIL, 
+            "name": DEMO_USER_NAME, 
+            "role": "user",
+            "password": DEMO_USER_PASSWORD
+        },
+        {
+            "email": DEMO_ADMIN_EMAIL, 
+            "name": DEMO_ADMIN_NAME, 
+            "role": "admin",
+            "password": DEMO_ADMIN_PASSWORD
+        }
     ]
     
+    created_users = []
     for user_data in demo_users:
         existing_user = db.query(User).filter(User.email == user_data["email"]).first()
         if not existing_user:
+            password = user_data["password"]
+            print(f"Creating user {user_data['email']} with configured password")
             user = User(
                 email=user_data["email"],
                 name=user_data["name"],
                 role=user_data["role"],
-                password_hash=hash_password(generate_readable_password()),  # Use readable password
+                password_hash=hash_password(password),
                 is_first_login=True,
-                storage_account="secureuploadsa01",
-                container="user-uploads" if user_data["role"] == "user" else "admin-uploads"
+                storage_account=DEMO_STORAGE_ACCOUNT_NAME,
+                container=DEMO_CONTAINER_USER if user_data["role"] == "user" else DEMO_CONTAINER_ADMIN
             )
             db.add(user)
+            created_users.append({
+                "email": user_data["email"],
+                "password": password,
+                "role": user_data["role"]
+            })
     
     # Demo storage accounts
     demo_storage_accounts = [
         {
             "id": "sa1",
-            "name": "secureuploadsa01",
-            "connection_string": "DefaultEndpointsProtocol=https;AccountName=secureuploadsa01;AccountKey=***",
-            "location": "West US 2",
-        },
-        {
-            "id": "sa2", 
-            "name": "secureuploadsa02",
-            "connection_string": "DefaultEndpointsProtocol=https;AccountName=secureuploadsa02;AccountKey=***",
-            "location": "East US",
+            "name": DEMO_STORAGE_ACCOUNT_NAME,
+            "connection_string": f"DefaultEndpointsProtocol=https;AccountName={DEMO_STORAGE_ACCOUNT_NAME};AccountKey=***",
+            "location": DEMO_STORAGE_LOCATION,
         }
     ]
     
@@ -301,10 +327,8 @@ def init_demo_data(db: Session):
     
     # Demo containers
     demo_containers = [
-        {"id": "c1", "name": "user-uploads", "account_id": "sa1"},
-        {"id": "c2", "name": "admin-uploads", "account_id": "sa1"},
-        {"id": "c3", "name": "backup-uploads", "account_id": "sa2"},
-        {"id": "c4", "name": "temp-uploads", "account_id": "sa1"},
+        {"id": "c1", "name": DEMO_CONTAINER_USER, "account_id": "sa1"},
+        {"id": "c2", "name": DEMO_CONTAINER_ADMIN, "account_id": "sa1"},
     ]
     
     for container_data in demo_containers:
@@ -975,4 +999,5 @@ async def delete_container(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("BACKEND_PORT", "8000"))
+    uvicorn.run(app, host="0.0.0.0", port=port)
