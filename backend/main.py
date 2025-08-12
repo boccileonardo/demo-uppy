@@ -23,9 +23,14 @@ from pydantic import BaseModel
 # Configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "../data"))  # Store files in the configured upload directory
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///../data/demo_uploader.db")
+
+# File upload configuration
+MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "10000"))
+MAX_FILES = int(os.getenv("MAX_FILES", "15"))
+CHUNK_SIZE_MB = int(os.getenv("CHUNK_SIZE_MB", "1"))
 
 # Create upload directory if it doesn't exist
 UPLOAD_DIR.mkdir(exist_ok=True)

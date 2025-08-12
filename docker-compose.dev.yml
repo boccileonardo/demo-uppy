@@ -3,13 +3,14 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
-    container_name: demo-uppy-backend-dev
+    container_name: ${BACKEND_CONTAINER_NAME:-demo-uppy-backend-dev}
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     environment:
-      - DATABASE_URL=sqlite:///./data/demo_uploader.db
-      - SECRET_KEY=dev-secret-key-not-for-production
-      - UPLOAD_DIR=/app/data
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/demo_uploader.db}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-not-for-production}
+      - UPLOAD_DIR=${UPLOAD_DIR:-/app/data}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
     volumes:
       - ./backend:/app
       - ./data:/app/data
@@ -22,11 +23,14 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
-    container_name: demo-uppy-frontend-dev
+    container_name: ${FRONTEND_CONTAINER_NAME:-demo-uppy-frontend-dev}
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+      - VITE_MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-10000}
+      - VITE_MAX_FILES=${MAX_FILES:-15}
+      - VITE_CHUNK_SIZE_MB=${CHUNK_SIZE_MB:-1}
     volumes:
       - ./frontend:/app
       - /app/node_modules
