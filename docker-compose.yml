@@ -3,17 +3,29 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: demo-uppy-backend
+    container_name: ${BACKEND_CONTAINER_NAME:-demo-uppy-backend}
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     environment:
-      - DATABASE_URL=sqlite:///./data/demo_uploader.db
-      - SECRET_KEY=your-secret-key-change-in-production
-      - UPLOAD_DIR=/app/data
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/demo_uploader.db}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - UPLOAD_DIR=${UPLOAD_DIR:-/app/data}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173,http://localhost:80}
+      - DEMO_ADMIN_EMAIL=${DEMO_ADMIN_EMAIL}
+      - DEMO_ADMIN_NAME=${DEMO_ADMIN_NAME}
+      - DEMO_ADMIN_PASSWORD=${DEMO_ADMIN_PASSWORD}
+      - DEMO_USER_EMAIL=${DEMO_USER_EMAIL}
+      - DEMO_USER_NAME=${DEMO_USER_NAME}
+      - DEMO_USER_PASSWORD=${DEMO_USER_PASSWORD}
+      - DEMO_STORAGE_ACCOUNT_NAME=${DEMO_STORAGE_ACCOUNT_NAME}
+      - DEMO_STORAGE_LOCATION=${DEMO_STORAGE_LOCATION}
+      - DEMO_CONTAINER_USER=${DEMO_CONTAINER_USER}
+      - DEMO_CONTAINER_ADMIN=${DEMO_CONTAINER_ADMIN}
     volumes:
       - ./data:/app/data
     networks:
-      - demo-uppy-network
+      - ${NETWORK_NAME:-demo-uppy-network}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
@@ -25,13 +37,23 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: demo-uppy-frontend
+    container_name: ${FRONTEND_CONTAINER_NAME:-demo-uppy-frontend}
     ports:
-      - "3000:80"
+      - "${FRONTEND_PORT:-3000}:80"
+    environment:
+      - VITE_API_URL=${API_BASE_URL:-http://localhost:8000}
+      - VITE_MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-10000}
+      - VITE_MAX_FILES=${MAX_FILES:-15}
+      - VITE_CHUNK_SIZE_MB=${CHUNK_SIZE_MB:-1}
+      - VITE_API_TIMEOUT=${VITE_API_TIMEOUT:-30000}
+      - VITE_DEMO_USER_EMAIL=${VITE_DEMO_USER_EMAIL}
+      - VITE_DEMO_USER_NAME=${VITE_DEMO_USER_NAME}
+      - VITE_DEMO_ADMIN_EMAIL=${VITE_DEMO_ADMIN_EMAIL}
+      - VITE_DEMO_ADMIN_NAME=${VITE_DEMO_ADMIN_NAME}
     depends_on:
       - backend
     networks:
-      - demo-uppy-network
+      - ${NETWORK_NAME:-demo-uppy-network}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/"]
@@ -40,5 +62,5 @@ services:
       retries: 3
 
 networks:
-  demo-uppy-network:
+  ${NETWORK_NAME:-demo-uppy-network}:
     driver: bridge

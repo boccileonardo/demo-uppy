@@ -12,3 +12,8 @@ wheels/
 frontend/node_modules/
 
 data/
+
+# Environment files
+.env
+.env.local
+.env.*.local

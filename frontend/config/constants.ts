@@ -3,7 +3,7 @@
  */
 
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost:8000',
+  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
   ENDPOINTS: {
     LOGIN: '/api/auth/login',
     SET_PASSWORD: '/api/auth/set-password',
@@ -17,12 +17,12 @@ export const API_CONFIG = {
     ADMIN_STORAGE_ACCOUNTS: '/api/admin/storage-accounts',
     ADMIN_CONTAINERS: '/api/admin/containers',
   },
-  TIMEOUT: 30000,
+  TIMEOUT: parseInt(import.meta.env.VITE_API_TIMEOUT) || 30000,
 } as const;
 
 export const FILE_UPLOAD = {
-  MAX_FILE_SIZE: 10000 * 1024 * 1024, // 10GB
-  MAX_FILES: 15,
+  MAX_FILE_SIZE: (parseInt(import.meta.env.VITE_MAX_FILE_SIZE_MB) || 10000) * 1024 * 1024, // Convert MB to bytes
+  MAX_FILES: parseInt(import.meta.env.VITE_MAX_FILES) || 15,
   ALLOWED_TYPES: [
     'text/csv',
     'application/json', 
@@ -36,7 +36,7 @@ export const FILE_UPLOAD = {
     '.avro',
     '.parquet',
   ],
-  CHUNK_SIZE: 1024 * 1024, // 1MB chunks
+  CHUNK_SIZE: (parseInt(import.meta.env.VITE_CHUNK_SIZE_MB) || 1) * 1024 * 1024, // Convert MB to bytes
 } as const;
 
 export const AUTH = {
@@ -52,6 +52,6 @@ export const UI = {
 } as const;
 
 export const DEMO_USERS = [
-  { email: 'demo@example.com', name: 'Demo User' },
-  { email: 'admin@example.com', name: 'Admin User' },
+  { email: import.meta.env.VITE_DEMO_USER_EMAIL || 'user@example.com', name: import.meta.env.VITE_DEMO_USER_NAME || 'Demo User' },
+  { email: import.meta.env.VITE_DEMO_ADMIN_EMAIL || 'admin@example.com', name: import.meta.env.VITE_DEMO_ADMIN_NAME || 'Admin User' },
 ] as const;

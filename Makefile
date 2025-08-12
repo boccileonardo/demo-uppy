@@ -1,27 +1,73 @@
 # Makefile for Demo Uppy Docker operations
 
-.PHONY: help build up down logs restart clean dev prod backend frontend
+.PHONY: help build up down logs restart clean dev prod backend frontend env-check
 
 # Default target
 help:
 	@echo "Demo Uppy Docker Management"
 	@echo ""
 	@echo "Available targets:"
+	@echo "  env-check  - Check if required environment files exist"
 	@echo "  clean      - Stop and clean up volumes"
 	@echo "  dev        - Start development environment"
 	@echo "  prod       - Start production environment"
+	@echo "  logs-dev   - Show development logs"
+	@echo "  logs-prod  - Show production logs"
+	@echo "  stop-dev   - Stop development environment"
+	@echo "  stop-prod  - Stop production environment"
 	@echo ""
+
+# Check if environment files exist
+env-check:
+	@echo "Checking environment files..."
+	@if [ ! -f .env.example ]; then \
+		echo "❌ .env.example not found!"; \
+		exit 1; \
+	else \
+		echo "✅ .env.example found"; \
+	fi
+	@if [ ! -f .env ]; then \
+		echo "⚠️  .env not found, please copy .env.example to .env and customize it"; \
+		echo "   Run: cp .env.example .env"; \
+	else \
+		echo "✅ .env found"; \
+	fi
 
 # Clean up everything
 clean:
-	docker compose down -v
-	docker compose -f docker-compose.dev.yml down -v || true
+	docker compose --env-file .env down -v 2>/dev/null || true
+	docker compose -f docker-compose.dev.yml --env-file .env.example down -v 2>/dev/null || true
 	docker system prune -f
 
 # Development mode
-dev:
-	docker compose -f docker-compose.dev.yml up --build
+dev: env-check
+	@if [ ! -f .env.example ]; then \
+		echo "❌ .env.example file not found!"; \
+		exit 1; \
+	fi
+	docker compose -f docker-compose.dev.yml --env-file .env.example up --build
 
 # Production mode with multi-stage optimized build
-prod:
-	docker compose up -d --build
+prod: env-check
+	@if [ ! -f .env ]; then \
+		echo "❌ .env file not found! Please copy .env.example to .env and customize it."; \
+		echo "   Run: cp .env.example .env"; \
+		exit 1; \
+	fi
+	docker compose --env-file .env up -d --build
+
+# Development logs
+logs-dev:
+	docker compose -f docker-compose.dev.yml --env-file .env.example logs -f
+
+# Production logs
+logs-prod:
+	docker compose --env-file .env logs -f
+
+# Stop development environment
+stop-dev:
+	docker compose -f docker-compose.dev.yml --env-file .env.example down
+
+# Stop production environment
+stop-prod:
+	docker compose --env-file .env down
