@@ -1,255 +1,54 @@
 # Demo Uploader - File Upload Application
 
-A full-stack file upload demo application with React frontend and FastAPI backend, featuring user authentication and local file storage.
+A full-stack file upload demo application with React frontend and FastAPI backend, with user authentication and uppy file upload.
 
-## Features
+> [!WARNING]  
+> The code is not production ready, it's only for a demo.
+> We can reuse styling, some components and ideas, but appropriate resources and timelines should be planned if we decide to proceed further with this approach.
 
-- ✅ **User Authentication**: Pre-created user accounts with first-time password setup
-- ✅ **File Upload**: Drag & drop or click to upload structured data files (CSV, JSON, TXT, Excel, XML)
-- ✅ **File Management**: View, download, and delete uploaded files
-- ✅ **Progress Tracking**: Real-time upload progress indicators
-- ✅ **File Validation**: Type and size validation (100MB limit)
-- ✅ **Local Storage**: Files stored locally instead of Azure (for demo purposes)
-- ✅ **Beautiful UI**: Modern, responsive design with Tailwind CSS
+## Tech Stack
 
-## Architecture
-
-- **Frontend**: React + TypeScript + Vite + Tailwind CSS + shadcn/ui
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS + shadcn/ui + Uppy.js
 - **Backend**: Python + FastAPI + SQLite + SQLAlchemy
 - **Authentication**: JWT tokens with bcrypt password hashing
 - **File Storage**: Local filesystem (easily replaceable with Azure Blob Storage)
 
+## Features
+- User authentication and admin role separation
+- Admin panel to manage users and blob destinations
+- File upload with uppy.js
+
+## Missing features
+- Real database to replace sqlite (sqlite does not allow concurrent writes)
+- Create real (not mock-ups) Azure connections in admin panel
+- Upload files to Azure instead of local filesystem
+- Integrate with Spyglass for failure logs and availability
+- User panel (change password, email, name, etc.)
+- Optional 2FA (allow users to increase their security)
+- After file upload has been processed by downstream, the app should display validation (schema, data quality) back to the user that uploaded it.
+- Developer panel (create api token, redirect to api docs) for tech savvy users that want to automate their upload workflows.
+- P&G SSO for admin login
+- Consider a more scalable deployment than docker compose
+- Security audit and penetrartion testing (after code has been refactored into real production-ready code).
+- Certificate for public facing SSL/HTTPS.
+
 ## Quick Start
 
-### Option 1: Docker Deployment (Recommended)
-
-The easiest way to run the application is using Docker Compose:
-
 ```bash
-# Build and start all services
-docker-compose up --build
-
-# Or run in detached mode
-docker-compose up -d --build
-```
-
-**Using the convenience script:**
-```bash
-# Production mode
-./docker.sh prod
-
-# Development mode with hot reloading
-./docker.sh dev
-
-# Show help
-./docker.sh help
-```
-
-**Using Make:**
-```bash
-# Production mode
-make prod
-
-# Development mode
+git clone https://github.com/boccileonardo/demo-uppy.git
 make dev
-
-# Show all available commands
-make help
 ```
 
 The application will be available at:
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8000
-
-### Option 2: Manual Setup
-
-#### Prerequisites
-
-- Python 3.12+ with `uv` package manager installed
-- Node.js 18+ with npm
-
-#### 1. Start the Backend Server
-
-```bash
-cd backend
-uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-**Or use the convenience script:**
-```bash
-./start-backend.sh
-```
-
-The backend will be available at: `http://localhost:8000`
-
-#### 2. Start the Frontend Server
-
-```bash
-npm install  # Only needed first time
-npm run dev
-```
-
-**Or use the convenience script:**
-```bash
-./start-frontend.sh
-```
-
-The frontend will be available at: `http://localhost:3000` (or next available port)
-
-## Demo Users
+- OpenAPI Docs: http://localhost:8000/docs
 
 The application comes with pre-created demo users:
 
-| Email | Initial Password | Notes |
-|-------|------------------|-------|
-| `demo@example.com` | `temporary123` | Will be prompted to set new password on first login |
-| `admin@example.com` | `temporary123` | Will be prompted to set new password on first login |
-| `test@example.com` | `temporary123` | Will be prompted to set new password on first login |
+| Email | Initial Password |
+|-------|------------------|
+| `demo@example.com` | `temporary123` |
+| `admin@example.com` | `temporary123` |
 
-## API Documentation
-
-Once the backend is running, visit `http://localhost:8000/docs` for interactive API documentation (Swagger UI).
-
-### Key Endpoints
-
-- `POST /api/auth/login` - User login
-- `POST /api/auth/set-password` - First-time password setup
-- `POST /api/upload` - File upload
-- `GET /api/files` - List user's files
-- `GET /api/files/{file_id}` - Download file
-- `DELETE /api/files/{file_id}` - Delete file
-
-## File Upload Restrictions
-
-- **Allowed Types**: CSV, JSON, TXT, Excel (.xlsx, .xls), XML
-- **Maximum Size**: 100MB per file
-- **Maximum Files**: 10 files per upload session
-
-## Project Structure
-
-```
-demo-uploader/
-├── backend/                 # FastAPI backend
-│   ├── main.py             # Main application file
-│   ├── demo_uploader.db    # SQLite database
-│   └── uploads/            # Uploaded files directory
-├── components/             # React components
-│   ├── AuthSection.tsx     # Login/password setup
-│   ├── FileUploadPortal.tsx # Main upload interface
-│   ├── UppyFileUploader.tsx # File upload component
-│   └── ui/                 # shadcn/ui components
-├── services/
-│   └── api.ts              # API service layer
-├── styles/
-│   └── globals.css         # Global styles
-└── package.json            # Frontend dependencies
-```
-
-## Development
-
-### Backend Development
-
-The backend uses:
-- **FastAPI** for the web framework
-- **SQLAlchemy** for database ORM
-- **SQLite** for the database
-- **JWT** for authentication
-- **bcrypt** for password hashing
-- **aiofiles** for async file operations
-
-Database tables are automatically created on startup.
-
-### Frontend Development
-
-The frontend uses:
-- **React 18** with TypeScript
-- **Vite** for development and building
-- **Tailwind CSS** for styling
-- **shadcn/ui** for UI components
-- **Lucide React** for icons
-
-The frontend automatically proxies API requests to the backend.
-
-## Docker Deployment
-
-The application is fully containerized using Docker and Docker Compose. See [DOCKER.md](DOCKER.md) for detailed Docker deployment instructions.
-
-### Quick Docker Commands
-
-```bash
-# Start production environment
-docker-compose up -d --build
-
-# Start development environment (with hot reloading)
-docker-compose -f docker-compose.dev.yml up --build
-
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
-
-# Clean up everything
-docker-compose down -v && docker system prune -f
-```
-
-### Docker Services
-
-- **Backend**: FastAPI application with health checks
-- **Frontend**: React application served by Nginx
-- **Volumes**: Persistent storage for uploads and database
-- **Network**: Internal Docker network for service communication
-
-## Deployment Notes
-
-### Docker Production Deployment (Recommended)
-
-1. **Update environment variables** in `docker-compose.yml`:
-   - Change `SECRET_KEY` to a secure value
-   - Configure proper database settings if using external DB
-
-2. **Deploy using Docker Compose**:
-   ```bash
-   docker-compose up -d --build
-   ```
-
-3. **Optional production enhancements**:
-   - Use external database (PostgreSQL)
-   - Add SSL/TLS certificates
-   - Implement proper logging and monitoring
-   - Use container orchestration (Kubernetes)
-
-### Manual Production Deployment
-
-For production deployment without Docker:
-
-1. **Backend**:
-   - Change the `SECRET_KEY` in `main.py`
-   - Use a production WSGI server (Gunicorn)
-   - Consider using PostgreSQL instead of SQLite
-   - Set up proper CORS origins
-   - Configure Azure Blob Storage if needed
-
-2. **Frontend**:
-   - Build with `npm run build`
-   - Serve the `dist` folder with a web server
-   - Update API base URL in production
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Port conflicts**: If ports 3000 or 8000 are in use, the servers will try alternative ports
-2. **Missing dependencies**: Run `npm install` and ensure `uv` is installed
-3. **Database issues**: Delete `backend/demo_uploader.db` to reset the database
-4. **CORS errors**: Ensure the backend is running and CORS is configured correctly
-
-### Logs
-
-- Backend logs appear in the terminal where you started the FastAPI server
-- Frontend logs appear in the browser console
-- Upload files are stored in `backend/uploads/`
-
-## License
-
-This is a demo application. Feel free to use and modify as needed.
+Once finished, you can clean up with `make clean` command.
