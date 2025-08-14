@@ -20,15 +20,10 @@ help:
 # Check if environment files exist
 env-check:
 	@echo "Checking environment files..."
-	@if [ ! -f .env.example ]; then \
-		echo "❌ .env.example not found!"; \
-		exit 1; \
-	else \
-		echo "✅ .env.example found"; \
-	fi
 	@if [ ! -f .env ]; then \
-		echo "⚠️  .env not found, please copy .env.example to .env and customize it"; \
-		echo "   Run: cp .env.example .env"; \
+		echo "❌ .env not found!"; \
+		echo "   Please create a .env file with your configuration"; \
+		exit 1; \
 	else \
 		echo "✅ .env found"; \
 	fi
@@ -36,16 +31,12 @@ env-check:
 # Clean up everything
 clean:
 	docker compose --env-file .env down -v 2>/dev/null || true
-	docker compose -f docker-compose.dev.yml --env-file .env.example down -v 2>/dev/null || true
+	docker compose -f docker-compose.dev.yml --env-file .env down -v 2>/dev/null || true
 	docker system prune -f
 
 # Development mode
 dev: env-check
-	@if [ ! -f .env.example ]; then \
-		echo "❌ .env.example file not found!"; \
-		exit 1; \
-	fi
-	docker compose -f docker-compose.dev.yml --env-file .env.example up --build
+	docker compose -f docker-compose.dev.yml --env-file .env up --build
 
 # Production mode with multi-stage optimized build
 prod: env-check
@@ -58,7 +49,7 @@ prod: env-check
 
 # Development logs
 logs-dev:
-	docker compose -f docker-compose.dev.yml --env-file .env.example logs -f
+	docker compose -f docker-compose.dev.yml --env-file .env logs -f
 
 # Production logs
 logs-prod:
@@ -66,7 +57,7 @@ logs-prod:
 
 # Stop development environment
 stop-dev:
-	docker compose -f docker-compose.dev.yml --env-file .env.example down
+	docker compose -f docker-compose.dev.yml --env-file .env down
 
 # Stop production environment
 stop-prod:

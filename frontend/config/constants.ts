@@ -17,7 +17,7 @@ export const API_CONFIG = {
     ADMIN_STORAGE_ACCOUNTS: '/api/admin/storage-accounts',
     ADMIN_CONTAINERS: '/api/admin/containers',
   },
-  TIMEOUT: parseInt(import.meta.env.VITE_API_TIMEOUT) || 30000,
+  TIMEOUT: 30000,
 } as const;
 
 export const FILE_UPLOAD = {
@@ -52,6 +52,6 @@ export const UI = {
 } as const;
 
 export const DEMO_USERS = [
-  { email: import.meta.env.VITE_DEMO_USER_EMAIL || 'user@example.com', name: import.meta.env.VITE_DEMO_USER_NAME || 'Demo User' },
-  { email: import.meta.env.VITE_DEMO_ADMIN_EMAIL || 'admin@example.com', name: import.meta.env.VITE_DEMO_ADMIN_NAME || 'Admin User' },
+  { email: 'user@example.com', name: 'Demo User' },
+  { email: 'admin@example.com', name: 'Admin User' },
 ] as const;
