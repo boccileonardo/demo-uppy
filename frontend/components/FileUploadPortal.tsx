@@ -23,12 +23,33 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
   const { isLoading, withLoading } = useLoading();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [storageInfo, setStorageInfo] = useState<UserStorageInfo | null>(null);
+  
+  // Pagination state for Recent Files
+  const [displayedFiles, setDisplayedFiles] = useState<UploadedFile[]>([]);
+  const [filesPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMoreFiles, setHasMoreFiles] = useState(false);
 
   // Load files and storage info on component mount
   useEffect(() => {
     loadFiles();
     loadStorageInfo();
   }, []);
+
+  // Update displayed files when uploadedFiles or pagination changes
+  useEffect(() => {
+    const totalFiles = uploadedFiles.length;
+    const startIndex = 0;
+    const endIndex = currentPage * filesPerPage;
+    const newDisplayedFiles = uploadedFiles.slice(startIndex, endIndex);
+    
+    setDisplayedFiles(newDisplayedFiles);
+    setHasMoreFiles(endIndex < totalFiles);
+  }, [uploadedFiles, currentPage, filesPerPage]);
+
+  const loadMoreFiles = () => {
+    setCurrentPage(prev => prev + 1);
+  };
 
   const loadFiles = async () => {
     return withLoading(async () => {
@@ -60,6 +81,10 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
     };
     
     setUploadedFiles(prev => [newFile, ...prev]);
+    
+    // Reset pagination to show new files immediately
+    setCurrentPage(1);
+    
     incrementStats('success', newFile.size);
     showNotification(`Successfully uploaded ${newFile.filename}`, 'success');
     console.log('File uploaded successfully:', newFile);
@@ -123,17 +148,18 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:grid-rows-[1fr] lg:items-stretch">
+        {/* Use flexbox for better height matching on large screens */}
+        <div className="flex flex-col lg:flex-row gap-8">
           {/* Upload Section */}
-          <div className="lg:col-span-2 flex flex-col">
-            <Card>
+          <div className="lg:flex-[2] flex flex-col">
+            <Card className="flex-1 flex flex-col">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Upload className="w-5 h-5 mr-2" />
                   File Upload
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-1 flex flex-col">
                 <UppyFileUploader
                   onFileAdded={handleFileAdded}
                   onUploadProgress={handleUploadProgress}
@@ -151,7 +177,7 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
           </div>
 
           {/* Stats & Files Sidebar */}
-          <div className="flex flex-col space-y-6 h-full">
+          <div className="lg:flex-1 flex flex-col space-y-6">
             {/* Upload Statistics */}
             <Card>
               <CardHeader>
@@ -213,36 +239,59 @@ export function FileUploadPortal({ user, onLogout }: FileUploadPortalProps) {
             </Card>
 
             {/* Recent Files */}
-            <Card className="flex-1">
+            <Card className="flex-1 flex flex-col">
               <CardHeader>
-                <CardTitle>Recent Files</CardTitle>
+                <CardTitle>Recent Files ({uploadedFiles.length})</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+              <CardContent className="flex-1 flex flex-col">
+                <div className="flex-1">
                   {isLoading ? (
                     <LoadingSpinner />
-                  ) : uploadedFiles.length === 0 ? (
+                  ) : displayedFiles.length === 0 ? (
                     <EmptyState
                       icon={Upload}
                       title="No files uploaded yet"
                       description="Start by uploading your first file"
                     />
                   ) : (
-                    uploadedFiles.map((file, index) => (
-                      <div key={`${file.id}-${index}`}>
-                        <FileItem
-                          filename={file.filename}
-                          size={file.size}
-                          uploadedAt={file.uploaded_at}
-                          status={file.status}
-                          formatFileSize={formatFileSize}
-                          formatDate={formatDate}
-                        />
-                        {index < uploadedFiles.length - 1 && (
-                          <Separator className="mt-3" />
-                        )}
+                    <div className="space-y-3">
+                      {/* Dynamic scrollable area - grows with content up to a limit */}
+                      <div className={`space-y-3 ${
+                        displayedFiles.length > 8 
+                          ? 'max-h-[500px] overflow-y-auto' 
+                          : displayedFiles.length > 4 
+                            ? 'min-h-[300px]' 
+                            : 'min-h-[200px]'
+                      } pr-2`}>
+                        {displayedFiles.map((file, index) => (
+                          <div key={`${file.id}-${index}`}>
+                            <FileItem
+                              filename={file.filename}
+                              size={file.size}
+                              uploadedAt={file.uploaded_at}
+                              status={file.status}
+                              formatFileSize={formatFileSize}
+                              formatDate={formatDate}
+                            />
+                            {index < displayedFiles.length - 1 && (
+                              <Separator className="mt-3" />
+                            )}
+                          </div>
+                        ))}
                       </div>
-                    ))
+                      {hasMoreFiles && (
+                        <div className="pt-4 border-t mt-4">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={loadMoreFiles}
+                            className="w-full"
+                          >
+                            Load More Files ({uploadedFiles.length - displayedFiles.length} remaining)
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </CardContent>
