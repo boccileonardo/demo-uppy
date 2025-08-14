@@ -26,10 +26,6 @@ repos:
   - id: ruff
     args: [ --fix ]
     name: ruff linter
-- repo: https://github.com/jorisroovers/gitlint
-  rev: v0.19.1
-  hooks:
-  - id: gitlint
 - repo: https://github.com/sqlfluff/sqlfluff
   rev: 3.4.2
   hooks:

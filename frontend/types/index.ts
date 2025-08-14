@@ -76,6 +76,15 @@ export interface UserStorageInfo {
   location: string;
 }
 
+export interface ContainerWithAccount {
+  container_id: string;
+  container_name: string;
+  storage_account_id: string;
+  storage_account_name: string;
+  location: string;
+  display_name: string;
+}
+
 // Component Props Types
 export interface AuthSectionProps {
   onLogin: (email: string, password: string) => Promise<{ needsPasswordSetup: boolean }>;
@@ -134,8 +143,7 @@ export interface UserCreateRequest {
   email: string;
   name: string;
   role: 'user' | 'admin';
-  storage_account: string;
-  container: string;
+  container_id: string;
 }
 
 export interface UserCreateResponse extends AppUser {
@@ -146,8 +154,7 @@ export interface UserUpdateRequest {
   email: string;
   name: string;
   role: 'user' | 'admin';
-  storage_account: string;
-  container: string;
+  container_id: string;
   is_active: boolean;
 }
 

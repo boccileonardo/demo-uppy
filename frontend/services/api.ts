@@ -18,6 +18,7 @@ import type {
   StorageAccountCreateRequest,
   StorageAccountUpdateRequest,
   ContainerCreateRequest,
+  ContainerWithAccount,
   UserStorageInfo
 } from '../types';
 
@@ -142,6 +143,14 @@ class ApiService {
 
   async getUserStorageInfo(): Promise<UserStorageInfo> {
     return this.request<UserStorageInfo>(API_CONFIG.ENDPOINTS.USER_STORAGE_INFO);
+  }
+  
+  async getContainers(): Promise<ContainerWithAccount[]> {
+    return this.request<ContainerWithAccount[]>(API_CONFIG.ENDPOINTS.CONTAINERS);
+  }
+  
+  async getContainersWithAccounts(): Promise<ContainerWithAccount[]> {
+    return this.request<ContainerWithAccount[]>(API_CONFIG.ENDPOINTS.ADMIN_CONTAINERS_WITH_ACCOUNTS);
   }
 
   // Admin endpoints

@@ -19,7 +19,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { useUserManagement } from '../hooks/useUserManagement';
-import { useDebounce } from '../hooks';
+import { useDebounce, useContainers } from '../hooks';
 import type { AppUser } from '../types';
 
 export function UserManagement() {
