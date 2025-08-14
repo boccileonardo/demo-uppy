@@ -1,6 +1,9 @@
+import { useEffect } from 'react';
 import { FormDialog } from '../ui/dialogs';
 import { TextField, SelectField } from '../ui/form-fields';
 import { useForm, validators } from '../../hooks/useForm';
+import { useQuery } from '../../hooks/useQuery';
+import { cachedApiService } from '../../services/cachedApi';
 import type { UserCreateRequest, UserUpdateRequest, AppUser } from '../../types';
 
 interface UserFormProps {
@@ -8,7 +11,6 @@ interface UserFormProps {
   onClose: () => void;
   onSubmit: (data: UserCreateRequest | UserUpdateRequest) => Promise<void>;
   user?: AppUser | null;
-  storageAccounts?: Array<{ id: string; name: string }>;
 }
 
 const roleOptions = [
@@ -16,40 +18,64 @@ const roleOptions = [
   { value: 'admin', label: 'Admin' },
 ];
 
-const defaultStorageAccounts = [
-  { id: 'secureuploadsa01', name: 'secureuploadsa01' },
-  { id: 'secureuploadsa02', name: 'secureuploadsa02' },
-];
-
-const containerOptions = [
-  { value: 'user-uploads', label: 'user-uploads' },
-  { value: 'admin-uploads', label: 'admin-uploads' },
-];
-
 export function UserForm({ 
   open, 
   onClose, 
   onSubmit, 
-  user, 
-  storageAccounts = defaultStorageAccounts 
+  user
 }: UserFormProps) {
   const isEditing = !!user;
+  
+  // Fetch containers with accounts from API
+  const { data: containersWithAccounts, loading: containersLoading } = useQuery(
+    cachedApiService.getContainersWithAccounts,
+    [],
+    {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      enabled: open, // Only fetch when form is open
+    }
+  );
+  
+  // Create container options for dropdown
+  const containerOptions = (containersWithAccounts || []).map(container => ({
+    value: container.container_id,
+    label: container.display_name,
+  }));
+  
+  // Find container ID based on user's current container and storage account (for editing)
+  const findContainerId = () => {
+    if (!user || !containersWithAccounts) return '';
+    
+    const matchingContainer = containersWithAccounts.find(
+      c => c.container_name === user.container && c.storage_account_name === user.storageAccount
+    );
+    
+    return matchingContainer?.container_id || '';
+  };
   
   const initialValues = {
     email: user?.email || '',
     name: user?.name || '',
     role: (user?.role || 'user') as 'user' | 'admin',
-    storage_account: user?.storageAccount || 'secureuploadsa01',
-    container: user?.container || 'user-uploads',
+    container_id: findContainerId() || '',
   };
 
   const validationRules = [
     { field: 'email' as const, validator: validators.required('Email is required') },
     { field: 'email' as const, validator: validators.email() },
     { field: 'name' as const, validator: validators.required('Name is required') },
-    { field: 'storage_account' as const, validator: validators.required('Storage account is required') },
-    { field: 'container' as const, validator: validators.required('Container is required') },
+    { field: 'container_id' as const, validator: validators.required('Container is required') },
   ];
+
+  // Update form fields when container data is loaded (for editing)
+  useEffect(() => {
+    if (user && containersWithAccounts && containersWithAccounts.length > 0) {
+      const newContainerId = findContainerId();
+      if (newContainerId) {
+        form.setValue('container_id', newContainerId);
+      }
+    }
+  }, [user, containersWithAccounts]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const form = useForm(initialValues, validationRules);
 
@@ -112,28 +138,15 @@ export function UserForm({
         required
       />
 
-      <div className="grid grid-cols-2 gap-4">
-        <SelectField
-          label="Storage Account"
-          value={form.values.storage_account}
-          onChange={(value) => form.setValue('storage_account', value)}
-          options={storageAccounts.map(account => ({
-            value: account.id,
-            label: account.name,
-          }))}
-          error={form.errors.storage_account}
-          required
-        />
-
-        <SelectField
-          label="Container"
-          value={form.values.container}
-          onChange={(value) => form.setValue('container', value)}
-          options={containerOptions}
-          error={form.errors.container}
-          required
-        />
-      </div>
+      <SelectField
+        label="Container & Storage Account"
+        value={form.values.container_id}
+        onChange={(value) => form.setValue('container_id', value)}
+        options={containerOptions}
+        error={form.errors.container_id}
+        placeholder={containersLoading ? "Loading containers..." : "Select container"}
+        required
+      />
     </FormDialog>
   );
 }

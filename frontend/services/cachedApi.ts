@@ -9,6 +9,7 @@ import type {
   StorageAccountCreateRequest,
   StorageAccountUpdateRequest,
   ContainerCreateRequest,
+  ContainerWithAccount,
   AdminStats,
   AdminActivity,
   UploadedFile,
@@ -95,6 +96,15 @@ class CachedApiService {
     queryCache.invalidate('getUsers');
     queryCache.invalidate('getAdminStats');
     return result;
+  }
+
+  // Container management
+  async getContainers(): Promise<ContainerWithAccount[]> {
+    return apiService.getContainers();
+  }
+  
+  async getContainersWithAccounts(): Promise<ContainerWithAccount[]> {
+    return apiService.getContainersWithAccounts();
   }
 
   // Storage account management with cache invalidation

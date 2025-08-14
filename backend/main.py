@@ -19,7 +19,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 import os
 import uuid
@@ -55,8 +55,7 @@ DEMO_USER_NAME = os.environ["DEMO_USER_NAME"]
 DEMO_USER_PASSWORD = os.environ["DEMO_USER_PASSWORD"]
 DEMO_STORAGE_ACCOUNT_NAME = os.environ["DEMO_STORAGE_ACCOUNT_NAME"]
 DEMO_STORAGE_LOCATION = os.environ["DEMO_STORAGE_LOCATION"]
-DEMO_CONTAINER_USER = os.environ["DEMO_CONTAINER_USER"]
-DEMO_CONTAINER_ADMIN = os.environ["DEMO_CONTAINER_ADMIN"]
+DEMO_CONTAINER = os.environ["DEMO_CONTAINER"]
 
 # Create upload directory if it doesn't exist
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -78,9 +77,9 @@ class User(Base):
     role = Column(String, default="user")  # user or admin
     is_active = Column(Boolean, default=True)
     is_first_login = Column(Boolean, default=True)
-    storage_account = Column(String, default="secureuploadsa01")
-    container = Column(String, default="user-uploads")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    storage_account = Column(String)
+    container = Column(String)
+    created_at = Column(DateTime, default=datetime.now(tz=timezone.utc))
     last_login = Column(DateTime, nullable=True)
 
 
@@ -94,7 +93,7 @@ class UploadedFile(Base):
     content_type = Column(String)
     file_path = Column(String)
     user_email = Column(String)
-    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    uploaded_at = Column(DateTime, default=datetime.now(tz=timezone.utc))
     status = Column(String, default="success")
 
 
@@ -106,7 +105,7 @@ class StorageAccount(Base):
     connection_string = Column(Text)
     location = Column(String)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(tz=timezone.utc))
 
 
 class Container(Base):
@@ -115,8 +114,7 @@ class Container(Base):
     id = Column(String, primary_key=True, index=True)
     name = Column(String, index=True)
     account_id = Column(String)
-    access_level = Column(String, default="private")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(tz=timezone.utc))
 
 
 class ActivityLog(Base):
@@ -127,7 +125,7 @@ class ActivityLog(Base):
     action = Column(String)
     details = Column(Text, nullable=True)
     status = Column(String)  # success, error, info
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(tz=timezone.utc))
 
 
 # Create tables
@@ -149,16 +147,18 @@ class UserCreate(BaseModel):
     email: str
     name: str
     role: str = "user"
-    storage_account: str = "secureuploadsa01"
-    container: str = "user-uploads"
+    container_id: (
+        str  # Container ID which includes implicit storage account association
+    )
 
 
 class UserUpdate(BaseModel):
     email: str
     name: str
     role: str
-    storage_account: str
-    container: str
+    container_id: (
+        str  # Container ID which includes implicit storage account association
+    )
     is_active: bool
 
 
@@ -292,7 +292,9 @@ def generate_readable_password() -> str:
 # JWT utilities
 def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(tz=timezone.utc) + timedelta(
+        minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+    )
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -303,10 +305,10 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         payload = jwt.decode(
             credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM]
         )
-        email: str = payload.get("sub")
+        email = payload.get("sub")
         if email is None:
             raise HTTPException(status_code=401, detail="Invalid token")
-        return email
+        return str(email)  # Explicitly convert to string to satisfy type checker
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
@@ -339,48 +341,6 @@ def log_activity(
 
 # Initialize demo users and storage accounts
 def init_demo_data(db: Session):
-    # Demo users
-    demo_users = [
-        {
-            "email": DEMO_USER_EMAIL,
-            "name": DEMO_USER_NAME,
-            "role": "user",
-            "password": DEMO_USER_PASSWORD,
-        },
-        {
-            "email": DEMO_ADMIN_EMAIL,
-            "name": DEMO_ADMIN_NAME,
-            "role": "admin",
-            "password": DEMO_ADMIN_PASSWORD,
-        },
-    ]
-
-    created_users = []
-    for user_data in demo_users:
-        existing_user = db.query(User).filter(User.email == user_data["email"]).first()
-        if not existing_user:
-            password = user_data["password"]
-            print(f"Creating user {user_data['email']} with configured password")
-            user = User(
-                email=user_data["email"],
-                name=user_data["name"],
-                role=user_data["role"],
-                password_hash=hash_password(password),
-                is_first_login=True,
-                storage_account=DEMO_STORAGE_ACCOUNT_NAME,
-                container=DEMO_CONTAINER_USER
-                if user_data["role"] == "user"
-                else DEMO_CONTAINER_ADMIN,
-            )
-            db.add(user)
-            created_users.append(
-                {
-                    "email": user_data["email"],
-                    "password": password,
-                    "role": user_data["role"],
-                }
-            )
-
     # Demo storage accounts
     demo_storage_accounts = [
         {
@@ -405,11 +365,11 @@ def init_demo_data(db: Session):
                 location=account_data["location"],
             )
             db.add(account)
+            db.flush()  # Flush to ensure the storage account has an ID before creating containers
 
-    # Demo containers
+    # Demo containers - first create containers since users depend on them
     demo_containers = [
-        {"id": "c1", "name": DEMO_CONTAINER_USER, "account_id": "sa1"},
-        {"id": "c2", "name": DEMO_CONTAINER_ADMIN, "account_id": "sa1"},
+        {"id": "c1", "name": DEMO_CONTAINER, "account_id": "sa1"},
     ]
 
     for container_data in demo_containers:
@@ -423,6 +383,59 @@ def init_demo_data(db: Session):
                 account_id=container_data["account_id"],
             )
             db.add(container)
+            db.flush()  # Flush to ensure container is created before users
+
+    # Demo users
+    demo_users = [
+        {
+            "email": DEMO_USER_EMAIL,
+            "name": DEMO_USER_NAME,
+            "role": "user",
+            "password": DEMO_USER_PASSWORD,
+        },
+        {
+            "email": DEMO_ADMIN_EMAIL,
+            "name": DEMO_ADMIN_NAME,
+            "role": "admin",
+            "password": DEMO_ADMIN_PASSWORD,
+        },
+    ]
+
+    created_users = []
+    for user_data in demo_users:
+        existing_user = db.query(User).filter(User.email == user_data["email"]).first()
+        if not existing_user:
+            password = user_data["password"]
+            print(f"Creating user {user_data['email']} with configured password")
+
+            # Get the container and storage account from our demo data
+            container = (
+                db.query(Container).filter(Container.name == DEMO_CONTAINER).first()
+            )
+            storage_account = (
+                db.query(StorageAccount)
+                .filter(StorageAccount.name == DEMO_STORAGE_ACCOUNT_NAME)
+                .first()
+            )
+
+            if container and storage_account:
+                user = User(
+                    email=user_data["email"],
+                    name=user_data["name"],
+                    role=user_data["role"],
+                    password_hash=hash_password(password),
+                    is_first_login=True,
+                    storage_account=storage_account.name,
+                    container=container.name,
+                )
+                db.add(user)
+                created_users.append(
+                    {
+                        "email": user_data["email"],
+                        "password": password,
+                        "role": user_data["role"],
+                    }
+                )
 
     db.commit()
 
@@ -445,7 +458,10 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat() + "Z"}
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now(tz=timezone.utc).isoformat() + "Z",
+    }
 
 
 @app.post("/api/auth/login", response_model=Token)
@@ -485,7 +501,7 @@ async def login(user_login: UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     # Update last login
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(tz=timezone.utc)
     db.commit()
 
     # Log successful login
@@ -516,7 +532,7 @@ async def set_password(user_password: UserSetPassword, db: Session = Depends(get
     # Update password
     user.password_hash = hash_password(user_password.new_password)
     user.is_first_login = False
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(tz=timezone.utc)
     db.commit()
 
     # Log password change
@@ -659,7 +675,69 @@ async def get_user_storage_info(
     }
 
 
+@app.get("/api/containers")
+async def get_available_containers(
+    email: str = Depends(verify_token), db: Session = Depends(get_db)
+):
+    """Get all active containers with their associated storage account info for dropdown selection"""
+    # Only return active storage accounts and their containers
+    storage_accounts = db.query(StorageAccount).filter(StorageAccount.is_active).all()
+
+    result = []
+    for storage_account in storage_accounts:
+        # Get all containers for this storage account
+        containers = (
+            db.query(Container).filter(Container.account_id == storage_account.id).all()
+        )
+
+        for container in containers:
+            result.append(
+                {
+                    "container_id": container.id,
+                    "container_name": container.name,
+                    "storage_account_id": storage_account.id,
+                    "storage_account_name": storage_account.name,
+                    "location": storage_account.location,
+                    "display_name": f"{container.name} ({storage_account.name} - {storage_account.location})",
+                }
+            )
+
+    return result
+
+
 # Admin API Endpoints
+@app.get("/api/admin/containers-with-accounts")
+async def get_containers_with_accounts(
+    admin_email: str = Depends(verify_admin_token), db: Session = Depends(get_db)
+):
+    """Get all containers with their associated storage account info for dropdown selection"""
+    containers = db.query(Container).all()
+
+    result = []
+    for container in containers:
+        # Get the associated storage account for each container
+        storage_account = (
+            db.query(StorageAccount)
+            .filter(StorageAccount.id == container.account_id)
+            .first()
+        )
+
+        if storage_account and storage_account.is_active:
+            result.append(
+                {
+                    "container_id": container.id,
+                    "container_name": container.name,
+                    "storage_account_id": storage_account.id,
+                    "storage_account_name": storage_account.name,
+                    "location": storage_account.location,
+                    # Create a display name for the dropdown that includes both container and storage account
+                    "display_name": f"{container.name} ({storage_account.name} - {storage_account.location})",
+                }
+            )
+
+    return result
+
+
 @app.get("/api/admin/stats", response_model=AdminStats)
 async def get_admin_stats(
     admin_email: str = Depends(verify_admin_token), db: Session = Depends(get_db)
@@ -782,6 +860,22 @@ async def create_user(
             status_code=400, detail="User with this email already exists"
         )
 
+    # Find the container and its associated storage account
+    container = (
+        db.query(Container).filter(Container.id == user_data.container_id).first()
+    )
+    if not container:
+        raise HTTPException(status_code=404, detail="Container not found")
+
+    # Get the storage account associated with the container
+    storage_account = (
+        db.query(StorageAccount)
+        .filter(StorageAccount.id == container.account_id)
+        .first()
+    )
+    if not storage_account:
+        raise HTTPException(status_code=404, detail="Storage account not found")
+
     # Generate readable temporary password
     temp_password = generate_readable_password()
 
@@ -790,8 +884,8 @@ async def create_user(
         email=user_data.email,
         name=user_data.name,
         role=user_data.role,
-        storage_account=user_data.storage_account,
-        container=user_data.container,
+        storage_account=storage_account.name,
+        container=container.name,
         password_hash=hash_password(temp_password),
         is_first_login=True,
     )
@@ -834,12 +928,28 @@ async def update_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # Find the container and its associated storage account
+    container = (
+        db.query(Container).filter(Container.id == user_data.container_id).first()
+    )
+    if not container:
+        raise HTTPException(status_code=404, detail="Container not found")
+
+    # Get the storage account associated with the container
+    storage_account = (
+        db.query(StorageAccount)
+        .filter(StorageAccount.id == container.account_id)
+        .first()
+    )
+    if not storage_account:
+        raise HTTPException(status_code=404, detail="Storage account not found")
+
     # Update user fields
     user.email = user_data.email
     user.name = user_data.name
     user.role = user_data.role
-    user.storage_account = user_data.storage_account
-    user.container = user_data.container
+    user.storage_account = storage_account.name
+    user.container = container.name
     user.is_active = user_data.is_active
 
     db.commit()
@@ -958,7 +1068,6 @@ async def get_storage_accounts(
                 {
                     "id": container.id,
                     "name": container.name,
-                    "accessLevel": container.access_level,
                     "size": size_str,
                     "files": file_count,
                     "lastModified": container.created_at,
@@ -1161,7 +1270,6 @@ async def create_container(
     return {
         "id": new_container.id,
         "name": new_container.name,
-        "accessLevel": new_container.access_level,
         "size": "0 MB",
         "files": 0,
         "lastModified": new_container.created_at,

@@ -170,6 +170,7 @@ export { useApi, usePaginatedApi } from './useApi';
 export { useForm, validators } from './useForm';
 export { useUserManagement } from './useUserManagement';
 export { useStorageManagement } from './useStorageManagement';
+export { useContainers } from './useContainers';
 
 /**
  * Hook for managing previous value

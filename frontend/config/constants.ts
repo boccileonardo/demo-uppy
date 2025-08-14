@@ -10,12 +10,14 @@ export const API_CONFIG = {
     UPLOAD: '/api/upload',
     FILES: '/api/files',
     USER_STORAGE_INFO: '/api/user/storage-info',
+    CONTAINERS: '/api/containers',
     // Admin endpoints
     ADMIN_STATS: '/api/admin/stats',
     ADMIN_ACTIVITY: '/api/admin/activity',
     ADMIN_USERS: '/api/admin/users',
     ADMIN_STORAGE_ACCOUNTS: '/api/admin/storage-accounts',
     ADMIN_CONTAINERS: '/api/admin/containers',
+    ADMIN_CONTAINERS_WITH_ACCOUNTS: '/api/admin/containers-with-accounts',
   },
   TIMEOUT: 30000,
 } as const;
@@ -50,8 +52,3 @@ export const UI = {
   DEBOUNCE_DELAY: 300,
   ANIMATION_DURATION: 200,
 } as const;
-
-export const DEMO_USERS = [
-  { email: 'user@example.com', name: 'Demo User' },
-  { email: 'admin@example.com', name: 'Admin User' },
-] as const;
