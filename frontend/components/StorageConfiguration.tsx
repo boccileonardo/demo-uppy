@@ -5,7 +5,8 @@ import { Badge } from './ui/badge';
 import { Alert, AlertDescription } from './ui/alert';
 import { ConfirmDialog } from './ui/dialogs';
 import { LoadingSpinner, EmptyState } from './ui/common';
-import { StorageAccountForm, ContainerForm } from './forms/StorageAccountForm';
+import { StorageAccountForm } from './forms/StorageAccountForm';
+import { ContainerForm } from './forms/ContainerForm';
 import { 
   Database,
   Plus,
@@ -32,6 +33,7 @@ export function StorageConfiguration() {
     open: false,
     accountId: null,
   });
+  const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
   const [deleteContainerDialog, setDeleteContainerDialog] = useState<{ 
     open: boolean; 
     accountId: string | null;
@@ -41,6 +43,7 @@ export function StorageConfiguration() {
     accountId: null,
     containerId: null,
   });
+  const [deleteContainerError, setDeleteContainerError] = useState<string | null>(null);
 
   // The hook automatically fetches data, no manual fetch needed
   
@@ -69,8 +72,19 @@ export function StorageConfiguration() {
 
   const confirmDeleteAccount = async () => {
     if (deleteAccountDialog.accountId) {
-      await storageManagement.deleteStorageAccount(deleteAccountDialog.accountId);
-      setDeleteAccountDialog({ open: false, accountId: null });
+      try {
+        await storageManagement.deleteStorageAccount(deleteAccountDialog.accountId);
+        setDeleteAccountDialog({ open: false, accountId: null });
+        setDeleteAccountError(null);
+      } catch (error: any) {
+        let message = 'Failed to delete storage account';
+        if (error?.response?.data?.detail) {
+          message = error.response.data.detail;
+        } else if (error?.message) {
+          message = error.message;
+        }
+        setDeleteAccountError(message);
+      }
     }
   };
 
@@ -88,14 +102,26 @@ export function StorageConfiguration() {
 
   const confirmDeleteContainer = async () => {
     if (deleteContainerDialog.containerId) {
-      await storageManagement.deleteContainer(
-        deleteContainerDialog.containerId
-      );
-      setDeleteContainerDialog({ 
-        open: false, 
-        accountId: null, 
-        containerId: null 
-      });
+      try {
+        await storageManagement.deleteContainer(
+          deleteContainerDialog.containerId
+        );
+        setDeleteContainerDialog({ 
+          open: false, 
+          accountId: null, 
+          containerId: null 
+        });
+        setDeleteContainerError(null);
+      } catch (error: any) {
+        // Try to extract API error message
+        let message = 'Failed to delete container';
+        if (error?.response?.data?.detail) {
+          message = error.response.data.detail;
+        } else if (error?.message) {
+          message = error.message;
+        }
+        setDeleteContainerError(message);
+      }
     }
   };
 
@@ -252,7 +278,6 @@ export function StorageConfiguration() {
                                 </Button>
                               </div>
                               <div className="space-y-1 text-xs text-gray-500">
-                                <div>Access: {container.accessLevel}</div>
                                 <div>Created: {new Date().toLocaleDateString()}</div>
                               </div>
                             </CardContent>
@@ -294,24 +319,44 @@ export function StorageConfiguration() {
 
       <ConfirmDialog
         open={deleteAccountDialog.open}
-        onClose={() => setDeleteAccountDialog({ open: false, accountId: null })}
+        onClose={() => {
+          setDeleteAccountDialog({ open: false, accountId: null });
+          setDeleteAccountError(null);
+        }}
         onConfirm={confirmDeleteAccount}
         title="Delete Storage Account"
-        description="Are you sure you want to delete this storage account? This will affect all users assigned to it."
+        description={
+          <>
+            Are you sure you want to delete this storage account? This will affect all users assigned to it.
+            {deleteAccountError && (
+              <div className="mt-2 text-red-600 text-sm font-medium">{deleteAccountError}</div>
+            )}
+          </>
+        }
         confirmLabel="Delete"
         variant="destructive"
       />
 
       <ConfirmDialog
         open={deleteContainerDialog.open}
-        onClose={() => setDeleteContainerDialog({ 
-          open: false, 
-          accountId: null, 
-          containerId: null 
-        })}
+        onClose={() => {
+          setDeleteContainerDialog({ 
+            open: false, 
+            accountId: null, 
+            containerId: null 
+          });
+          setDeleteContainerError(null);
+        }}
         onConfirm={confirmDeleteContainer}
         title="Delete Container"
-        description="Are you sure you want to delete this container? All files will be lost."
+        description={
+          <>
+            Are you sure you want to delete this container? All files will be lost.
+            {deleteContainerError && (
+              <div className="mt-2 text-red-600 text-sm font-medium">{deleteContainerError}</div>
+            )}
+          </>
+        }
         confirmLabel="Delete"
         variant="destructive"
       />

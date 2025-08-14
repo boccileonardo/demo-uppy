@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 import { FormDialog } from '../ui/dialogs';
 import { TextField, SelectField } from '../ui/form-fields';
 import { useForm, validators } from '../../hooks/useForm';
@@ -32,7 +33,7 @@ export function UserForm({
     [],
     {
       staleTime: 5 * 60 * 1000, // 5 minutes
-      enabled: open, // Only fetch when form is open
+      enabled: true, // Always fetch containers data
     }
   );
   
@@ -53,13 +54,6 @@ export function UserForm({
     return matchingContainer?.container_id || '';
   };
   
-  const initialValues = {
-    email: user?.email || '',
-    name: user?.name || '',
-    role: (user?.role || 'user') as 'user' | 'admin',
-    container_id: findContainerId() || '',
-  };
-
   const validationRules = [
     { field: 'email' as const, validator: validators.required('Email is required') },
     { field: 'email' as const, validator: validators.email() },
@@ -67,32 +61,70 @@ export function UserForm({
     { field: 'container_id' as const, validator: validators.required('Container is required') },
   ];
 
-  // Update form fields when container data is loaded (for editing)
+  const form = useForm(
+    {
+      email: '',
+      name: '',
+      role: 'user' as 'user' | 'admin',
+      container_id: '',
+    }, 
+    validationRules
+  );
+
+  // Update form fields when the form is opened or when container data changes
   useEffect(() => {
-    if (user && containersWithAccounts && containersWithAccounts.length > 0) {
-      const newContainerId = findContainerId();
-      if (newContainerId) {
-        form.setValue('container_id', newContainerId);
+    if (open && containersWithAccounts) {
+      if (isEditing && user) {
+        // For editing, set values based on the user data
+        const containerId = findContainerId();
+        form.setValues({
+          email: user.email || '',
+          name: user.name || '',
+          role: (user.role as 'user' | 'admin') || 'user',
+          container_id: containerId
+        });
+      } else {
+        // For new user, reset to initial state
+        form.reset();
       }
     }
-  }, [user, containersWithAccounts]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, user, containersWithAccounts]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const form = useForm(initialValues, validationRules);
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!open) {
+      form.reset();
+      setSubmissionError(null);
+    }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const handleSubmit = async () => {
-    if (form.validate()) {
+    setSubmissionError(null);
+    // Validate the form before submission
+    const isValid = form.validate();
+    // Only proceed if validation passes
+    if (isValid) {
       try {
         await onSubmit(form.values);
         form.reset();
         onClose();
       } catch (error) {
-        // Error is handled by the calling component
+        // Check if error is due to duplicate email
+        if (error instanceof Error && error.message.includes('already exists')) {
+          form.setError('email', 'A user with this email already exists');
+        } else {
+          // Generic error handling
+          const message = error instanceof Error && error.message ? error.message : null;
+          setSubmissionError(message || 'Form submission failed. Please try again.');
+        }
       }
     }
   };
 
   const handleClose = () => {
     form.reset();
+    setSubmissionError(null);
     onClose();
   };
 
@@ -109,26 +141,33 @@ export function UserForm({
       onSubmit={handleSubmit}
       submitLabel={isEditing ? 'Update User' : 'Create User'}
       isSubmitting={form.isSubmitting}
-      submitDisabled={!form.isValid || !form.isDirty}
     >
+      {submissionError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTitle>Submission Failed</AlertTitle>
+          <AlertDescription>{submissionError}</AlertDescription>
+        </Alert>
+      )}
       <TextField
         label="Email"
         type="email"
         value={form.values.email}
         onChange={(value) => form.setValue('email', value)}
+        placeholder={!isEditing ? "user@example.com" : undefined}
         error={form.errors.email}
         required
         disabled={isEditing} // Email should not be editable
+        key={`email-${isEditing ? user?.id : 'new'}`}
       />
-
       <TextField
         label="Full Name"
         value={form.values.name}
         onChange={(value) => form.setValue('name', value)}
+        placeholder={!isEditing ? "John Doe" : undefined}
         error={form.errors.name}
         required
+        key={`name-${isEditing ? user?.id : 'new'}`}
       />
-
       <SelectField
         label="Role"
         value={form.values.role}
@@ -136,8 +175,8 @@ export function UserForm({
         options={roleOptions}
         error={form.errors.role}
         required
+        key={`role-${isEditing ? user?.id : 'new'}`}
       />
-
       <SelectField
         label="Container & Storage Account"
         value={form.values.container_id}
@@ -146,6 +185,7 @@ export function UserForm({
         error={form.errors.container_id}
         placeholder={containersLoading ? "Loading containers..." : "Select container"}
         required
+        key={`container-${isEditing ? user?.id : 'new'}`}
       />
     </FormDialog>
   );

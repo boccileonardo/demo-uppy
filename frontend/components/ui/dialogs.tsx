@@ -6,7 +6,7 @@ interface BaseDialogProps {
   open: boolean;
   onClose: () => void;
   title: string;
-  description?: string;
+  description?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -30,7 +30,6 @@ interface FormDialogProps extends BaseDialogProps {
   submitLabel?: string;
   cancelLabel?: string;
   isSubmitting?: boolean;
-  submitDisabled?: boolean;
 }
 
 export function FormDialog({
@@ -44,7 +43,6 @@ export function FormDialog({
   submitLabel = 'Save',
   cancelLabel = 'Cancel',
   isSubmitting = false,
-  submitDisabled = false,
 }: FormDialogProps) {
   const handleCancel = () => {
     if (onCancel) {
@@ -63,7 +61,7 @@ export function FormDialog({
         <Button variant="outline" onClick={handleCancel} disabled={isSubmitting}>
           {cancelLabel}
         </Button>
-        <Button onClick={onSubmit} disabled={isSubmitting || submitDisabled}>
+        <Button onClick={onSubmit} disabled={isSubmitting}>
           {isSubmitting ? 'Saving...' : submitLabel}
         </Button>
       </DialogFooter>
@@ -76,7 +74,7 @@ interface ConfirmDialogProps {
   onClose: () => void;
   onConfirm: () => void;
   title: string;
-  description: string;
+  description: React.ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: 'default' | 'destructive';

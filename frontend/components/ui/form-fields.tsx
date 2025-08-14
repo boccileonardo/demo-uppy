@@ -46,7 +46,10 @@ export function TextField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        className={error ? 'border-red-500' : ''}
+        className={cn(
+          error ? 'border-red-500' : '',
+          'placeholder:text-gray-400 placeholder:italic'
+        )}
       />
       {error && (
         <p className="text-sm text-red-500">{error}</p>
@@ -89,7 +92,7 @@ export function SelectField({
         {required && <span className="text-red-500 ml-1">*</span>}
       </Label>
       <Select value={value} onValueChange={onChange} disabled={disabled}>
-        <SelectTrigger className={error ? 'border-red-500' : ''}>
+        <SelectTrigger id={fieldId} className={error ? 'border-red-500' : ''}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
